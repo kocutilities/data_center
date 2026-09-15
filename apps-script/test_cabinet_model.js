@@ -343,9 +343,11 @@ section('Against the sheet, 2026-08-16');
         check('every cabinet gets exactly one state', all.every(a => a.state), true);
         check('the unread is H-04, missed on both feeds',
               all.filter(a => a.state === 'unread').map(a => a.cab.name).sort(), ['Cabin H-04']);
-        /* A-12 joined on 2026-09-15: its Feed A is PDU-1 Q46, which has no reading */
-        check('the incomplete are A-12 (PDU-1 Q46 never read) and D-03, missed on one feed',
-              all.filter(a => a.state === 'incomplete').map(a => a.cab.name).sort(), ['Cabin A12', 'Cabin D-03']);
+        check('the incomplete is D-03, missed on one feed',
+              all.filter(a => a.state === 'incomplete').map(a => a.cab.name), ['Cabin D-03']);
+        const a12 = all.find(a => a.cab.name === 'Cabin A12');
+        check('A-12 on PDU-1 Q46 (13.8 A) + PDU-6 Q76 (5.5 A): 19.3 A, 96.5 % either way -> High Load',
+              [r1(a12.total), r1(a12.governing.worst.pctCont), a12.state], [19.3, 96.5, 'high']);
 
         /* single-phase readings must be in their own phase column, or the
            model would read the way as blank */
@@ -369,9 +371,9 @@ section('Against the sheet, 2026-08-16');
         check('  ... UPS-2 at 55.1 %, ESMSB-2 at 76.1 %',
               [r1(e1.chain[3].pct), r1(e1.chain[4].pct)], [55.1, 76.1]);
         check('  ... PDU 6 incomer 127.6 A, High Load', [r1(e1.pdus[0].peak), e1.pdus[0].state], [127.6, 'high']);
-        check('  ... cabinets 109 / 4 / 1 / 0, 3 not read (A-12 now has an unread feed)',
+        check('  ... cabinets 109 / 5 / 1 / 0, 2 not read',
               [e1.cabinets.normal, e1.cabinets.high, e1.cabinets.critical, e1.cabinets.overload, e1.cabinets.missing],
-              [109, 4, 1, 0, 3]);
+              [109, 5, 1, 0, 2]);
         check('EMSB-2 lost: G-10 trips -> Overload', [e2.state, e2.cabinets.worst[0].res.cab.name], ['overload', 'Cabin G-10']);
         check('  ... transformer B 690 A, 32.3 %', [e2.chain[0].peak, r1(e2.chain[0].pct)], [690, 32.3]);
         [e1, e2].forEach(e => {

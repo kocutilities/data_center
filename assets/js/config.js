@@ -737,7 +737,9 @@ const DC_CONFIG = {
       notes: [
         'Like for like: Q46 is the same 25 A, 30 mA RCBO on the same R phase as Q76, so the breaker '
           + 'limits and the phase loading are unchanged.',
-        'PDU-1 Q76 is now drawn CABIN A12 SPARE \u2014 kept for A-12, not released.'
+        'PDU-1 Q76 is now drawn CABIN A12 SPARE \u2014 kept for A-12, not released.',
+        'PDU-1 Q46 read 13.8 A on 16-08-2026 (entered on the sheet 2026-09-15). That value had first been ' 
+          + 'recorded against PDU-1 Q76; A-12 was already on Q46 by then, since 01-03-2026.'
       ],
       drawings: [
         'PDU-01 single line diagram, dated 15-09-26: Q46 CABIN A-12 IND.SOCKET (was SPARE IND.SOCKET); '
@@ -750,8 +752,6 @@ const DC_CONFIG = {
       actions: [
         'Find out why PDU-1 Q76 tripped before deciding whether A-12 goes back to it \u2014 whether it was the '
           + 'overcurrent or the 30 mA residual-current element, and test the RCBO.',
-        'Read PDU-1 Q46 on the next round. There is no reading of it on record: the 16-08-2026 value entered '
-          + 'against PDU-1 Q76 was removed from the sheet on 15-09-2026, so A-12\u2019s Feed A current is unknown.',
         'Set a date to restore Q76, or record the change as permanent and redraw it as such.',
         'Move the superseded 10-09-2026 PDU-1.pdf to 99-Archive. The 15-09 issue was saved as PDU-01.pdf in the '
           + 'older \u201cPDU 1 to 8 Single Line Diagram\u201d folder, and the 08-09 PDU-01.pdf was archived instead.'
