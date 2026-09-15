@@ -904,19 +904,47 @@
         }
 
         var on = loadedPhases(w, p, c.now);
-        var contS = Math.min(w.cont, pw.cont), plateS = Math.min(w.plate, pw.plate), limS = contS * PLAN;
-        var gov = pw.plate < w.plate ? pw : w;
-        var total = {};
-        w.phases.forEach(function (ph) {
-            total[ph] = c.now.I[ph] + pn.I[ph] + (on.indexOf(ph) >= 0 ? p.amps : 0);
-        });
-        var peakPh = w.phases.reduce(function (m, ph) { return total[ph] > total[m] ? ph : m; }, w.phases[0]);
-        var peak = total[peakPh];
-        var pct = peak / contS * 100;
-        var state = peak > contS ? 'fail' : peak > limS ? 'watch' : 'pass';
-        var both = Math.max.apply(null, on.map(function (ph) { return c.now.I[ph] + pn.I[ph]; }));
-        var maxA = Math.max(0, limS - both);
         var loadKw = function (a) { return (p.phases === '3' ? SQRT3 * V : V_PH) * a * p.pf / 1000; };
+
+        /* Each direction on its own. Losing this breaker's feed puts the whole
+           cabinet on the partner; losing the partner's feed puts it on this one.
+           The current is the same either way - both cords plus the new load -
+           but the breaker that must carry it is not, so with unequal breakers
+           the answers differ: G-10 survives losing one feed and trips on the
+           other. Both are worked and both are reported. */
+        var survive = function (lost, surv) {
+            var t = {};
+            w.phases.forEach(function (ph) {
+                t[ph] = c.now.I[ph] + pn.I[ph] + (on.indexOf(ph) >= 0 ? p.amps : 0);
+            });
+            var pk = w.phases.reduce(function (m, ph) { return t[ph] > t[m] ? ph : m; }, w.phases[0]);
+            var I = t[pk], lim = surv.cont * PLAN;
+            return { lost: lost, surv: surv, total: t, peak: I, peakPh: pk, lim: lim,
+                     pct: I / surv.cont * 100,
+                     state: I > surv.plate ? 'trips' : I > surv.cont ? 'fail' : I > lim ? 'watch' : 'pass' };
+        };
+        var dirs = [survive(w, pw), survive(pw, w)];
+        var RANK = { pass: 0, watch: 1, fail: 2, trips: 3 };
+        var worst = RANK[dirs[1].state] > RANK[dirs[0].state] ? dirs[1] : dirs[0];
+        var otherDir = worst === dirs[0] ? dirs[1] : dirs[0];
+        var state = worst.state === 'trips' ? 'fail' : worst.state;
+
+        var both = Math.max.apply(null, on.map(function (ph) { return c.now.I[ph] + pn.I[ph]; }));
+        var limS = Math.min(w.cont, pw.cont) * PLAN;
+        var maxA = Math.max(0, limS - both);
+
+        var WORD = { pass: 'holds, with the 15 % margin intact',
+                     watch: 'holds, inside its rating but above the 15 % level',
+                     fail: 'above its continuous rating — holds for a while, not indefinitely',
+                     trips: 'over its plate — it trips' };
+        var feedLost = function (d) {
+            return 'Feed ' + d.lost.feed + ' is lost (' + d.lost.pdu + ', ' + upsOf(d.lost.feed) + ' or EMSB-'
+                 + (d.lost.feed === 'A' ? '1' : '2') + ')';
+        };
+        var dirText = function (d) {
+            return fmt(d.peak, 1) + ' A on ' + d.surv.pdu + ' ' + d.surv.q + ' (' + d.surv.plate + ' A), '
+                 + fmt(d.pct, 1) + ' % of ' + fmt(d.surv.cont, 1) + ' A continuous — ' + WORD[d.state];
+        };
 
         var figures = [
             ['Other cord’s breaker', pw.pdu + ' ' + pw.q + '  ·  ' + pw.plate + ' A  ·  Feed ' + pw.feed
@@ -924,54 +952,68 @@
             ['Why these two pair', c.pair.kind === 'cabinet'
                 ? 'same cabinet (' + w.rack + '), same way number and phase'
                 : 'both spare, same way number and phase — a free pair'],
-            ['Governing breaker', w.plate === pw.plate
-                ? 'both are ' + w.plate + ' A'
-                : gov.pdu + ' ' + gov.q + ', ' + gov.plate + ' A — the smaller one; after a failure it '
-                  + 'carries everything'],
             ['Carrying now', w.pdu + ' ' + w.q + ': ' + phaseList(w, c.now.I) + '   |   '
                 + pw.pdu + ' ' + pw.q + ': ' + phaseList(pw, pn.I)],
             ['New load, whole', fmt(p.amps, 1) + ' A ' + (p.phases === '3' ? 'per phase' : 'in one phase')],
-            ['Surviving breaker after a feed is lost', phaseList(w, total)],
-            ['Busiest phase', fmt(peak, 1) + ' A on ' + peakPh + ' — ' + fmt(pct, 1) + ' % of '
-                + fmt(contS, 1) + ' A continuous'],
-            ['Room left to the 15 % level', roomText(limS - peak)],
-            ['Largest dual-corded load the pair accepts', fmt(loadKw(maxA), 2) + ' kW   (' + fmt(maxA, 1) + ' A)']
+            ['If ' + feedLost(dirs[0]), dirText(dirs[0])],
+            ['If ' + feedLost(dirs[1]), dirText(dirs[1])],
+            ['Room left to the 15 % level, weaker direction', roomText(worst.lim - worst.peak)],
+            ['Largest dual-corded load the pair accepts', fmt(loadKw(maxA), 2) + ' kW   (' + fmt(maxA, 1) + ' A)'
+                + (w.plate !== pw.plate ? ' — set by the ' + Math.min(w.plate, pw.plate) + ' A breaker' : '')]
         ];
 
         /* The pair may be past its limit before anything is added - G-10 is.
-           Say so first: the new load is then not the cause, and no size of it
-           can be accepted until the existing load is dealt with. */
+           Say so first, direction by direction: the new load is then not the
+           cause, and no size of it fits until the existing load is dealt with. */
         var before = '';
         if (both > limS) {
-            before = 'Before any addition, the pair already carries ' + fmt(both, 1) + ' A between its two cords'
-                   + (both > plateS
-                       ? ' — more than the ' + plateS + ' A plate of ' + gov.pdu + ' ' + gov.q
-                         + ', so this cabinet has no working redundancy today. '
-                       : both > contS
-                           ? ' — above the ' + fmt(contS, 1) + ' A continuous rating of ' + gov.pdu + ' ' + gov.q
-                             + ' once one feed is lost. '
-                           : ' — above the ' + fmt(limS, 1) + ' A level that keeps 15 % spare. ')
-                   + 'No new load fits on this pair until that is resolved. ';
+            var preState = function (d) {
+                return both > d.surv.plate ? 'trips' : both > d.surv.cont ? 'fail' : both > d.lim ? 'watch' : 'pass';
+            };
+            var VERB = { trips: 'would trip', fail: 'would run above its continuous rating',
+                         watch: 'would run above its 15 % level' };
+            var bad = dirs.filter(function (d) { return preState(d) !== 'pass'; });
+            before = 'Before any addition, the pair already carries ' + fmt(both, 1) + ' A between its two cords. '
+                   + bad.map(function (d) {
+                         return 'If Feed ' + d.lost.feed + ' is lost, ' + d.surv.pdu + ' ' + d.surv.q + ' ('
+                              + d.surv.plate + ' A) ' + VERB[preState(d)] + '.';
+                     }).join(' ')
+                   + (bad.length === 1
+                       ? ' Losing Feed ' + (bad[0] === dirs[0] ? dirs[1] : dirs[0]).lost.feed + ' instead is '
+                         + 'survivable, so today the cabinet is protected against one feed only.'
+                       : ' Neither direction is covered today.')
+                   + ' No new load fits on this pair until that is resolved. ';
         }
 
         var detail;
-        if (peak > plateS) {
-            detail = before + 'Not acceptable — redundancy is lost. If either feed fails, the surviving breaker '
-                   + 'would carry ' + fmt(peak, 1) + ' A on ' + peakPh + ' phase, above the ' + plateS
-                   + ' A plate of ' + gov.pdu + ' ' + gov.q + '. It trips, and the cabinet goes dark on a '
-                   + 'single failure — the event the second cord exists for.';
-        } else if (state === 'fail') {
-            detail = before + 'Not acceptable — after a feed is lost the surviving breaker would carry '
-                   + fmt(peak, 1) + ' A, ' + fmt(pct, 1) + ' % of its continuous rating. It would hold for a '
-                   + 'while but not indefinitely, and a failure is exactly when it has to hold until repair.';
-        } else if (state === 'watch') {
-            detail = before + 'Acceptable on rating, not on spare — after a feed is lost the surviving breaker '
-                   + 'would carry ' + fmt(peak, 1) + ' A (' + fmt(pct, 1) + ' % of continuous), inside the '
-                   + 'rating but above the 15 % level. The largest dual-corded load that keeps the margin '
-                   + 'is ' + fmt(loadKw(maxA), 2) + ' kW.';
+        if (worst.state === 'trips') {
+            detail = before + 'Not acceptable — if ' + feedLost(worst) + ', ' + worst.surv.pdu + ' '
+                   + worst.surv.q + ' would carry ' + fmt(worst.peak, 1) + ' A on ' + worst.peakPh
+                   + ' phase, above its ' + worst.surv.plate + ' A plate. It trips, and the cabinet goes dark '
+                   + 'on a single failure — the event the second cord exists for.';
+        } else if (worst.state === 'fail') {
+            detail = before + 'Not acceptable — if ' + feedLost(worst) + ', ' + worst.surv.pdu + ' '
+                   + worst.surv.q + ' would carry ' + fmt(worst.peak, 1) + ' A, ' + fmt(worst.pct, 1)
+                   + ' % of its continuous rating. It would hold for a while but not indefinitely, and a '
+                   + 'failure is exactly when it has to hold until repair.';
+        } else if (worst.state === 'watch') {
+            detail = before + 'Acceptable on rating, not on spare — if ' + feedLost(worst) + ', '
+                   + worst.surv.pdu + ' ' + worst.surv.q + ' would carry ' + fmt(worst.peak, 1) + ' A ('
+                   + fmt(worst.pct, 1) + ' % of continuous), inside the rating but above the 15 % level. The '
+                   + 'largest dual-corded load that keeps the margin both ways is ' + fmt(loadKw(maxA), 2) + ' kW.';
         } else {
-            detail = 'Acceptable — redundancy holds. If either feed is lost the surviving breaker carries '
-                   + fmt(peak, 1) + ' A, ' + fmt(pct, 1) + ' % of continuous, with the 15 % margin intact.';
+            var carries = function (d) {
+                return d.surv.pdu + ' ' + d.surv.q + ' (' + d.surv.plate + ' A) carries ' + fmt(d.peak, 1)
+                     + ' A, ' + fmt(d.pct, 1) + ' % of its continuous rating';
+            };
+            detail = 'Acceptable — redundancy holds whichever feed is lost. If Feed ' + dirs[0].lost.feed
+                   + ' goes, ' + carries(dirs[0]) + '; if Feed ' + dirs[1].lost.feed + ' goes, ' + carries(dirs[1])
+                   + '. The 15 % margin is intact both ways.';
+        }
+        if (worst.state !== 'pass' && otherDir.state !== worst.state) {
+            detail += ' If Feed ' + otherDir.lost.feed + ' is lost instead, ' + otherDir.surv.pdu + ' '
+                    + otherDir.surv.q + ' carries it at ' + fmt(otherDir.pct, 1) + ' % of continuous — '
+                    + WORD[otherDir.state] + '.';
         }
 
         var notes = ['In normal running each cord carries about half. The case tested here is the one that '
