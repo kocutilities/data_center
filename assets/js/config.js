@@ -752,9 +752,7 @@ const DC_CONFIG = {
       actions: [
         'Find out why PDU-1 Q76 tripped before deciding whether A-12 goes back to it \u2014 whether it was the '
           + 'overcurrent or the 30 mA residual-current element, and test the RCBO.',
-        'Set a date to restore Q76, or record the change as permanent and redraw it as such.',
-        'Move the superseded 10-09-2026 PDU-1.pdf to 99-Archive. The 15-09 issue was saved as PDU-01.pdf in the '
-          + 'older \u201cPDU 1 to 8 Single Line Diagram\u201d folder, and the 08-09 PDU-01.pdf was archived instead.'
+        'Set a date to restore Q76, or record the change as permanent and redraw it as such.'
       ]
     },
     {
