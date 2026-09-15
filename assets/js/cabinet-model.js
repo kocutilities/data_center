@@ -16,14 +16,20 @@
      continuous rating = 0.8 x plate          KOC-E-003 Pt 1 cl. 11.2.2
      margin line       = 87 % of continuous   the 15 % spare margin,
                                               as assessment.js R5 uses
-     trip              = the plate itself
+     breaker rating    = the plate itself
 
    STATUS, from the worst surviving breaker after either PDU is lost
      Normal     <= 87 % of continuous     margin intact
      High Load  <= 100 % of continuous    within rating, margin used
      Critical   above continuous, up to the plate - holds, not sustainable
-     Overload   above the plate - the breaker trips and the cabinet
-                goes dark on a single PDU failure: no redundancy at all
+     Overload   above the plate - the breaker is outside its own rating
+                and redundancy cannot be relied on. Going over the plate
+                is NOT an instant trip. The PDU ways are RCBOs, and
+                IEC 61009-1 fixes their overload behaviour (In <= 63 A):
+                  up to 1.13 x In  must NOT trip within 1 hour
+                  1.13 - 1.45 x In may trip within the hour
+                  1.45 x In        MUST trip within 1 hour
+                tripBand() below says which band a current is in.
 
    THE FAILOVER MODEL
    A way with the same number on both PDUs serves the same rack position
@@ -329,7 +335,7 @@ var DC_CABINETS = (function () {
          cabinets        each cabinet's failover for that feed.
 
        Rating basis, one per kind of device, each cited:
-         breaker      continuous 0.8 x plate, trips at the plate
+         breaker      continuous 0.8 x plate; Overload above the plate
                       KOC-E-003 Pt 1 cl. 11.2.2; KOC-E-009 cl. 6.3
          UPS          continuous = its kVA plate, as the Additional Load
                       Study takes it; 125 % for 10 min is the overload
@@ -602,10 +608,49 @@ var DC_CABINETS = (function () {
         return I > plate ? 'overload' : pct > 100 ? 'critical' : pct > MARGIN ? 'high' : 'normal';
     }
 
+    /* How an RCBO over its rating behaves, per IEC 61009-1's conventional
+       currents for In <= 63 A (conventional time 1 h). This is the product
+       standard for the PDU ways, not a KOC criterion: it does not change a
+       status, it says what "over the plate" means for the cabinet. */
+    var RCBO = { noTrip: 1.13, trip: 1.45, std: 'IEC 61009-1' };
+
+    function tripBand(I, plate) {
+        if (I === null || I === undefined || !plate || I <= plate) return null;
+        var r = I / plate;
+        var band = r >= RCBO.trip ? 'trips' : r > RCBO.noTrip ? 'may' : 'holds';
+        /* two decimals, but three near a band edge - 1.448 x must not print
+           as "1.45 x" beside the words "may trip" */
+        var near = Math.abs(r - RCBO.trip) < 0.01 || Math.abs(r - RCBO.noTrip) < 0.01;
+        return { ratio: r, band: band, ratioText: r.toFixed(near ? 3 : 2),
+                 toMayTrip: RCBO.noTrip * plate - I,          /* amps left before the uncertain band */
+                 short: band === 'trips' ? 'trips within the hour'
+                      : band === 'may' ? 'may trip within the hour'
+                      : 'no trip expected within the hour' };
+    }
+
+    /* One sentence for a report. */
+    function tripWords(I, plate) {
+        var t = tripBand(I, plate);
+        if (!t) return '';
+        var at = 'At ' + t.ratioText + ' × its ' + plate + ' A rating ';
+        if (t.band === 'trips') {
+            return at + 'it is at or above the 1.45 × at which ' + RCBO.std + ' requires an RCBO to trip '
+                 + 'within an hour: expect it to trip.';
+        }
+        if (t.band === 'may') {
+            return at + 'it is between ' + RCBO.std + '’s 1.13 × no-trip and 1.45 × trip currents: '
+                 + 'it may trip within the hour.';
+        }
+        return at + 'it is under the 1.13 × that ' + RCBO.std + ' requires an RCBO to carry for an hour '
+             + 'without tripping, so an immediate trip is not expected — but it is overloaded, and '
+             + t.toMayTrip.toFixed(1) + ' A more would take it into the band where it may trip.';
+    }
+
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
+        tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,
         STATUS: STATUS, MARGIN: MARGIN, CONT: CONT, V_PHASE: V_PHASE
     };
 })();

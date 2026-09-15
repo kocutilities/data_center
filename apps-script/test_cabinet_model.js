@@ -265,6 +265,22 @@ section('A whole EMSB lost - the other UPS chain carries the room');
     check('unread cabinet stays unread in either case', M.stateOnFeedLoss(M.analyse(c, {}), 'A'), 'unread');
 }
 
+/* ======================================================== over the plate is not a trip */
+section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
+{
+    const B = (I, plate) => { const t = M.tripBand(I, plate); return t ? t.band : null; };
+    check('16.0 A on 16 A: at the rating, not over it', B(16.0, 16), null);
+    check('G-10, 16.2 A on 16 A (1.01 x): overloaded, no trip expected in the hour', B(16.2, 16), 'holds');
+    check('18.08 A (exactly 1.13 x): still the no-trip current', B(18.08, 16), 'holds');
+    check('18.1 A (just over 1.13 x): may trip', B(18.1, 16), 'may');
+    check('23.19 A (under 1.45 x): may trip', B(23.19, 16), 'may');
+    check('23.2 A (1.45 x): must trip within the hour', B(23.2, 16), 'trips');
+    check('G-10 sentence gives the amps left before the may-trip band',
+          /1\.9 A more/.test(M.tripWords(16.2, 16)), true);
+    check('the sentence never says "trips" for 1.01 x',
+          /expect it to trip/.test(M.tripWords(16.2, 16)), false);
+}
+
 /* ======================================================== the diagram agrees */
 section('The single line diagram counts the same cabinets');
 {

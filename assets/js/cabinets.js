@@ -188,7 +188,7 @@
             { key: 'normal',   k: 'Normal',    v: c.normal,   s: 'margin intact',          cls: 'st-normal' },
             { key: 'high',     k: 'High Load', v: c.high,     s: 'within rating',          cls: 'st-high' },
             { key: 'critical', k: 'Critical',  v: c.critical, s: 'above rating',           cls: 'st-critical' },
-            { key: 'overload', k: 'Overload',  v: c.overload, s: 'would trip',             cls: 'st-overload' },
+            { key: 'overload', k: 'Overload',  v: c.overload, s: 'over breaker rating',    cls: 'st-overload' },
             { key: 'missing',  k: 'Not read',  v: c.missing,  s: 'no status given',        cls: 'st-unread' }
         ];
         tiles.forEach(function (t) {
@@ -260,8 +260,12 @@
         if (over.length) {
             host.appendChild(finding('st-overload',
                 '<b>' + over.length + ' cabinet' + (over.length === 1 ? '' : 's') +
-                ' would lose power ' + when + '</b> — the surviving breaker would carry more ' +
-                'than its plate rating and trip. ' + over.map(failWords).join('; ') + '.'));
+                ' would be left on a breaker over its own rating ' + when + '</b> — redundancy cannot ' +
+                'be relied on. ' + over.map(function (r) {
+                    var w = govOf(r).worst;
+                    return failWords(r) + '. ' + M.tripWords(w.I, w.ch.plate);
+                }).join(' ') + ' Over the plate is not an instant trip: IEC 61009-1 lets an RCBO carry ' +
+                '1.13 × its rating for an hour and requires a trip within the hour only at 1.45 ×.'));
         }
 
         var crit = results.filter(function (r) { return stateOf(r) === 'critical'; });
@@ -415,8 +419,10 @@
         if (e.state === 'overload') {
             head = '<b>' + surv + ' cannot carry every cabinet if ' + e.board + ' fails.</b> ' +
                    (over.length ? over.map(function (x) {
-                       return cabName(x) + ' would trip — ' + fmt(x.worst.I) + ' A on ' + x.worst.ch.way.pdu + ' ' +
-                              x.worst.ch.way.q + ', a ' + x.worst.ch.plate + ' A breaker';
+                       var tb = M.tripBand(x.worst.I, x.worst.ch.plate);
+                       return cabName(x) + ' would be left on a breaker over its rating — ' + fmt(x.worst.I) +
+                              ' A on ' + x.worst.ch.way.pdu + ' ' + x.worst.ch.way.q + ', a ' + x.worst.ch.plate +
+                              ' A breaker' + (tb ? ' (' + tb.ratioText + ' ×, ' + tb.short + ')' : '');
                    }).join('; ') + '. ' : '') +
                    bad.filter(function (d) { return d.state === 'overload'; }).map(function (d) {
                        return esc(d.name) + ' would be over its limit (' + pct(d.pct) + ').';
@@ -467,7 +473,7 @@
             var c = e.cabinets, key = el('div', 'sc-key');
             var ups = e.chain.filter(function (d) { return d.id === 'ups'; })[0];
             var bits = [];
-            if (c.overload) bits.push('<b>' + c.overload + ' cabinet' + (c.overload === 1 ? '' : 's') + ' would trip</b>');
+            if (c.overload) bits.push('<b>' + c.overload + ' cabinet' + (c.overload === 1 ? '' : 's') + ' over breaker rating</b>');
             if (c.critical) bits.push('<b>' + c.critical + ' above rating</b>');
             if (c.high) bits.push(c.high + ' at high load');
             var pduTop = e.pdus.filter(function (d) { return d.state !== 'unread'; })
@@ -748,7 +754,7 @@
         var lg = $('legend');
         lg.innerHTML = '';
         [['normal', '≤ 87 % of continuous'], ['high', '87–100 %'], ['critical', 'above continuous, under the plate'],
-         ['overload', 'over the plate — trips'], ['unread', 'not read']].forEach(function (x) {
+         ['overload', 'over the breaker’s own rating — may trip'], ['unread', 'not read']].forEach(function (x) {
             var s = el('span'); s.appendChild(el('span', 'spill st-' + x[0], LABEL[x[0]]));
             s.appendChild(document.createTextNode(' ' + x[1])); lg.appendChild(s);
         });
@@ -937,7 +943,7 @@
                 st.appendChild(el('div', 'surv st-' + rs, '✓ survives ' + what));
             } else if (rs === 'critical' || rs === 'overload') {
                 st.appendChild(el('div', 'surv st-' + rs,
-                    rs === 'overload' ? '✗ trips on ' + what : '✗ above rating on ' + what));
+                    rs === 'overload' ? '✗ over breaker rating on ' + what : '✗ above rating on ' + what));
             }
             row.appendChild(st);
 
@@ -957,11 +963,16 @@
             '<ul><li><b>Continuous rating = 0.8 × the breaker plate</b>, KOC-E-003 Pt 1 cl. 11.2.2. On the bars, ' +
             'the tick marks it.</li>' +
             '<li><b>87 % of continuous</b> is the 15 % spare margin, as the assessment uses for feeders.</li>' +
-            '<li><b>The plate</b> is where the breaker trips.</li></ul>' +
+            '<li><b>The plate</b> is the breaker’s own rating. Going over it is not an instant trip. The PDU ' +
+            'ways are RCBOs, and IEC 61009-1 fixes how they behave: <b>up to 1.13 ×</b> the rating they must not ' +
+            'trip within an hour, <b>1.13–1.45 ×</b> they may, and <b>at 1.45 ×</b> they must trip within ' +
+            'the hour. So an Overload is a breaker running outside its rating whose trip cannot be ruled out — ' +
+            'not a certain outage.</li></ul>' +
 
             '<h3>Status — the worst surviving breaker, whichever PDU fails</h3>' +
             '<ul><li><b>Normal</b> ≤ 87 % of continuous · <b>High Load</b> ≤ 100 % · <b>Critical</b> above ' +
-            'continuous but under the plate · <b>Overload</b> over the plate, so it trips and the cabinet goes dark.</li>' +
+            'continuous but under the plate · <b>Overload</b> over the plate: outside the breaker’s own rating, ' +
+            'overheating it and its cable, with a trip that becomes likely as the ratio rises.</li>' +
             '<li>The surviving breaker always carries at least what it carries now, so this also covers normal ' +
             'running: a breaker already over its rating shows up here too.</li></ul>' +
 
@@ -999,7 +1010,7 @@
             'not counted in the verdict.</li></ul>' +
 
             '<h3>Rating basis for the supply path</h3>' +
-            '<ul><li><b>Breakers, ACBs, MCCBs</b>: 0.8 × plate continuous, trip at the plate — KOC-E-003 cl. 11.2.2, ' +
+            '<ul><li><b>Breakers, ACBs, MCCBs</b>: 0.8 × plate continuous, Overload above the plate — KOC-E-003 cl. 11.2.2, ' +
             'KOC-E-009 cl. 6.3.</li>' +
             '<li><b>UPS</b>: the 500 kVA plate is the continuous rating (695.6 A a phase), as the Additional Load Study ' +
             'takes it. Above it is Critical; above 125 %, the overload it can carry for 10 minutes (KOC-E-011 cl. 8.7), ' +

@@ -594,7 +594,11 @@
        Limits - the same as the Power System Assessment and Cabinet Load pages:
          continuous rating = 0.8 x breaker plate      KOC-E-003 Pt 1 cl. 11.2.2
          planning level    = 87 % of continuous       the 15 % spare, cl. 9.4.1(a)
-         trip              = the plate itself
+         breaker rating    = the plate itself. Over it is an overload, not an
+                             instant trip: IEC 61009-1 lets an RCBO carry 1.13 x
+                             its rating for an hour and trips it within the hour
+                             at 1.45 x. DC_CABINETS.tripWords says which band a
+                             current is in, so both pages word it the same way.
        --------------------------------------------------------- */
 
     var PAIR = { 'PDU 1': 'PDU 6', 'PDU 6': 'PDU 1', 'PDU 3': 'PDU 2', 'PDU 2': 'PDU 3',
@@ -692,6 +696,11 @@
 
     /* kW that a current represents on this kind of way at the stated PF:
        three phase on a four-pole way, single phase on a two-pole way. */
+    /* what "over the plate" means for this RCBO, from the shared cabinet model */
+    function tripText(I, plate) {
+        return (typeof DC_CABINETS !== 'undefined' && DC_CABINETS.tripWords) ? DC_CABINETS.tripWords(I, plate) : '';
+    }
+
     /* headroom in words: never a negative "room left" */
     function roomText(a) {
         return a >= 0 ? fmt(a, 1) + ' A' : 'none — ' + fmt(-a, 1) + ' A beyond it';
@@ -810,8 +819,8 @@
             : '';
         if (peak > w.plate) {
             detail = pre + 'Not acceptable — ' + w.pdu + ' ' + w.q + ' would carry ' + fmt(peak, 1) + ' A on '
-                   + peakPh + ' phase, above its ' + w.plate + ' A plate. The breaker would trip in normal '
-                   + 'running.';
+                   + peakPh + ' phase, over its own ' + w.plate + ' A rating in normal running. '
+                   + tripText(peak, w.plate);
         } else if (state === 'fail') {
             detail = pre + 'Not acceptable — ' + w.pdu + ' ' + w.q + ' would carry ' + fmt(peak, 1) + ' A on '
                    + peakPh + ' phase, ' + fmt(pct, 1) + ' % of its ' + fmt(w.cont, 1) + ' A continuous '
@@ -910,8 +919,8 @@
            cabinet on the partner; losing the partner's feed puts it on this one.
            The current is the same either way - both cords plus the new load -
            but the breaker that must carry it is not, so with unequal breakers
-           the answers differ: G-10 survives losing one feed and trips on the
-           other. Both are worked and both are reported. */
+           the answers differ: G-10 holds on losing one feed and is left on an
+           overloaded breaker on the other. Both are worked and reported. */
         var survive = function (lost, surv) {
             var t = {};
             w.phases.forEach(function (ph) {
@@ -921,13 +930,13 @@
             var I = t[pk], lim = surv.cont * PLAN;
             return { lost: lost, surv: surv, total: t, peak: I, peakPh: pk, lim: lim,
                      pct: I / surv.cont * 100,
-                     state: I > surv.plate ? 'trips' : I > surv.cont ? 'fail' : I > lim ? 'watch' : 'pass' };
+                     state: I > surv.plate ? 'over' : I > surv.cont ? 'fail' : I > lim ? 'watch' : 'pass' };
         };
         var dirs = [survive(w, pw), survive(pw, w)];
-        var RANK = { pass: 0, watch: 1, fail: 2, trips: 3 };
+        var RANK = { pass: 0, watch: 1, fail: 2, over: 3 };
         var worst = RANK[dirs[1].state] > RANK[dirs[0].state] ? dirs[1] : dirs[0];
         var otherDir = worst === dirs[0] ? dirs[1] : dirs[0];
-        var state = worst.state === 'trips' ? 'fail' : worst.state;
+        var state = worst.state === 'over' ? 'fail' : worst.state;
 
         var both = Math.max.apply(null, on.map(function (ph) { return c.now.I[ph] + pn.I[ph]; }));
         var limS = Math.min(w.cont, pw.cont) * PLAN;
@@ -936,14 +945,18 @@
         var WORD = { pass: 'holds, with the 15 % margin intact',
                      watch: 'holds, inside its rating but above the 15 % level',
                      fail: 'above its continuous rating — holds for a while, not indefinitely',
-                     trips: 'over its plate — it trips' };
+                     over: 'over the breaker’s own rating' };
         var feedLost = function (d) {
             return 'Feed ' + d.lost.feed + ' is lost (' + d.lost.pdu + ', ' + upsOf(d.lost.feed) + ' or EMSB-'
                  + (d.lost.feed === 'A' ? '1' : '2') + ')';
         };
+        var bandOf = function (d) {
+            var t = (typeof DC_CABINETS !== 'undefined') ? DC_CABINETS.tripBand(d.peak, d.surv.plate) : null;
+            return t ? ' (' + t.ratioText + ' ×, ' + t.short + ')' : '';
+        };
         var dirText = function (d) {
             return fmt(d.peak, 1) + ' A on ' + d.surv.pdu + ' ' + d.surv.q + ' (' + d.surv.plate + ' A), '
-                 + fmt(d.pct, 1) + ' % of ' + fmt(d.surv.cont, 1) + ' A continuous — ' + WORD[d.state];
+                 + fmt(d.pct, 1) + ' % of ' + fmt(d.surv.cont, 1) + ' A continuous — ' + WORD[d.state] + bandOf(d);
         };
 
         var figures = [
@@ -968,9 +981,9 @@
         var before = '';
         if (both > limS) {
             var preState = function (d) {
-                return both > d.surv.plate ? 'trips' : both > d.surv.cont ? 'fail' : both > d.lim ? 'watch' : 'pass';
+                return both > d.surv.plate ? 'over' : both > d.surv.cont ? 'fail' : both > d.lim ? 'watch' : 'pass';
             };
-            var VERB = { trips: 'would trip', fail: 'would run above its continuous rating',
+            var VERB = { over: 'would be over its own rating', fail: 'would run above its continuous rating',
                          watch: 'would run above its 15 % level' };
             var bad = dirs.filter(function (d) { return preState(d) !== 'pass'; });
             before = 'Before any addition, the pair already carries ' + fmt(both, 1) + ' A between its two cords. '
@@ -980,17 +993,18 @@
                      }).join(' ')
                    + (bad.length === 1
                        ? ' Losing Feed ' + (bad[0] === dirs[0] ? dirs[1] : dirs[0]).lost.feed + ' instead is '
-                         + 'survivable, so today the cabinet is protected against one feed only.'
+                         + 'within rating, so today the cabinet is dependably protected against one feed only.'
                        : ' Neither direction is covered today.')
                    + ' No new load fits on this pair until that is resolved. ';
         }
 
         var detail;
-        if (worst.state === 'trips') {
+        if (worst.state === 'over') {
             detail = before + 'Not acceptable — if ' + feedLost(worst) + ', ' + worst.surv.pdu + ' '
                    + worst.surv.q + ' would carry ' + fmt(worst.peak, 1) + ' A on ' + worst.peakPh
-                   + ' phase, above its ' + worst.surv.plate + ' A plate. It trips, and the cabinet goes dark '
-                   + 'on a single failure — the event the second cord exists for.';
+                   + ' phase, over its own ' + worst.surv.plate + ' A rating. ' + tripText(worst.peak, worst.surv.plate)
+                   + ' Either way the cabinet would be running on one breaker outside its rating — redundancy '
+                   + 'that cannot be relied on, in the very event the second cord exists for.';
         } else if (worst.state === 'fail') {
             detail = before + 'Not acceptable — if ' + feedLost(worst) + ', ' + worst.surv.pdu + ' '
                    + worst.surv.q + ' would carry ' + fmt(worst.peak, 1) + ' A, ' + fmt(worst.pct, 1)
