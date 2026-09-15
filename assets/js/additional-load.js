@@ -28,6 +28,10 @@
 
     var V = DC_SYSTEM.systemVoltage;
     var SQRT3 = Math.sqrt(3);
+    var V_PH = V / SQRT3;                  /* 239.6 V, phase to neutral */
+
+    /* a connection point that is a PDU, and so has breakers to choose from */
+    function isPdu(point) { return !!(DC_CONFIG.pduCircuits && DC_CONFIG.pduCircuits[point]); }
 
     function el(tag, cls, text) {
         var n = document.createElement(tag);
@@ -160,20 +164,32 @@
         if (!isFinite(val) || val <= 0) return null;
         if (!isFinite(pf) || pf <= 0 || pf > 1) pf = 0.9;
 
+        /* The current is the current in the phase conductor the load actually
+           sits on. A three-phase load of S kVA draws S / (1.732 x 415 V) in each
+           phase. A single-phase load draws S / 239.6 V - all of it in ONE phase,
+           three times the balanced figure. Every rule here judges the worst
+           phase, so using the balanced figure for a single-phase load would
+           understate what it does to a breaker by a factor of three. */
+        var single = $('phases').value === '1';
+        var perPhase = function (k) { return single ? k * 1000 / V_PH : ampsFromKva(k); };
+
         var kva, kw, amps;
-        if (mode === 'kw') { kw = val; kva = kw / pf; amps = ampsFromKva(kva); }
-        else if (mode === 'kva') { kva = val; kw = kva * pf; amps = ampsFromKva(kva); }
-        else { amps = val; kva = kvaFromAmps(amps); kw = kva * pf; }
+        if (mode === 'kw') { kw = val; kva = kw / pf; amps = perPhase(kva); }
+        else if (mode === 'kva') { kva = val; kw = kva * pf; amps = perPhase(kva); }
+        else { amps = val; kva = single ? V_PH * amps / 1000 : kvaFromAmps(amps); kw = kva * pf; }
 
         var typeKey = $('loadType').value;                 /* continuous|intermittent|standby */
         var df = KOC.diversity[typeKey];
+        var point = $('point').value;
         return {
             kw: kw, kva: kva, amps: amps, pf: pf,
             type: typeKey, df: df,
             demandAmps: amps * df,                          /* contribution to Maximum Demand */
             category: $('category').value,                  /* critical|essential|non-essential */
-            point: $('point').value,
-            phases: $('phases').value
+            point: point,
+            phases: $('phases').value,
+            way: isPdu(point) ? $('way').value : '',        /* '' = board level, no breaker chosen */
+            cords: $('cords').value                         /* dual | single */
         };
     }
 
@@ -541,7 +557,10 @@
         var c = KOC.upstream.mewFeederLimit;
         var d = basisDemand();
         if (!d) return null;
-        var mw = kvaFromAmps(d.value + p.demandAmps) * p.pf / 1000;
+        /* site demand at the stated PF, plus the load's own diversified kW -
+           taken from kW, not from its phase current, so a single-phase load
+           is not counted three times over */
+        var mw = (kvaFromAmps(d.value) * p.pf + p.kw * p.df) / 1000;
         var pass = mw <= c.value;
         return push({
             id: 'A7', title: 'Upstream MEW feeder',
@@ -561,6 +580,413 @@
        render
        --------------------------------------------------------- */
 
+    /* ---------------------------------------------------------
+       PDU breakers - where a load on a PDU actually connects
+
+       A PDU is not one connection point but up to 78, each behind its own
+       RCBO. Choosing the breaker tests the load where it lands: the breaker
+       itself first (B1), then - because the IT load in this room is
+       dual-corded - the breaker on the other feed that must carry everything
+       if one feed is lost (B2). The board-level rules A1-A7 still run, on the
+       PDU the breaker sits in, with the whole load applied: that is the state
+       after a feed is lost, which is the one that has to be survivable.
+
+       Limits - the same as the Power System Assessment and Cabinet Load pages:
+         continuous rating = 0.8 x breaker plate      KOC-E-003 Pt 1 cl. 11.2.2
+         planning level    = 87 % of continuous       the 15 % spare, cl. 9.4.1(a)
+         trip              = the plate itself
+       --------------------------------------------------------- */
+
+    var PAIR = { 'PDU 1': 'PDU 6', 'PDU 6': 'PDU 1', 'PDU 3': 'PDU 2', 'PDU 2': 'PDU 3',
+                 'PDU 5': 'PDU 4', 'PDU 4': 'PDU 5', 'PDU 7': 'PDU 8', 'PDU 8': 'PDU 7' };
+    var PLAN = 0.87;
+
+    function isSpareRack(r) { return /SPARE/i.test(r || ''); }
+
+    function plateOfBreaker(b) {
+        var m = String(b || '').match(/(\d+(?:\.\d+)?)/);
+        return m ? parseFloat(m[1]) : null;
+    }
+
+    function wayOf(pdu, q) {
+        var c = ((DC_CONFIG.pduCircuits || {})[pdu] || []).filter(function (x) { return x.c === q; })[0];
+        if (!c) return null;
+        var plate = plateOfBreaker(c.breaker);
+        return {
+            pdu: pdu, q: q, rack: c.rack, spare: isSpareRack(c.rack),
+            plate: plate, cont: plate === null ? null : plate * KOC.deratingFactor.value,
+            ph: c.ph, phases: c.ph === '3' ? ['R', 'Y', 'B'] : [c.ph],
+            feed: DC_PDU_FEED[pdu], key: 'PDU|' + pdu + '|' + q
+        };
+    }
+
+    function polesText(w) {
+        return w.ph === '3' ? 'four-pole RCBO, three phase' : 'two-pole RCBO, ' + w.ph + ' phase and neutral';
+    }
+    function servesText(w) {
+        if (!w.spare) return w.rack;
+        var rest = String(w.rack).replace(/^SPARE\s*/i, '');
+        return rest ? 'Spare (' + rest + ')' : 'Spare';
+    }
+    function upsOf(feed) { return feed === 'A' ? 'UPS-1' : 'UPS-2'; }
+
+    /* What a breaker carries now, phase by phase, under the active basis.
+
+       A reading that was not taken is not zero - with one stated exception:
+       a spare way that nobody read is taken as empty, which is its design
+       state, and the report says so rather than assuming it silently.
+
+       On a historical basis the server keeps one figure per way, the worst
+       phase, so that figure is applied to every phase of a four-pole way.
+       It can only overstate, never hide a peak. */
+    function wayNow(w) {
+        var o = { I: {}, read: false, assumed: false, worstOnly: false, when: '' };
+        if (basis === 'today') {
+            var r = readings[w.key];
+            var ok = r && w.phases.every(function (ph) {
+                var v = r[ph.toLowerCase()];
+                return v !== '' && v !== null && v !== undefined && isFinite(Number(v));
+            });
+            if (ok) {
+                w.phases.forEach(function (ph) { o.I[ph] = Number(r[ph.toLowerCase()]); });
+                o.read = true;
+                o.when = 'reading of ' + $('date').value;
+            }
+        } else if (hist && hist.stats && hist.stats[w.key]) {
+            var st = hist.stats[w.key];
+            w.phases.forEach(function (ph) { o.I[ph] = st.max; });
+            o.read = true;
+            o.worstOnly = w.phases.length > 1;
+            o.when = 'highest in ' + basis + ' year' + (basis === '1' ? '' : 's') + ', on ' + st.maxDate;
+        }
+        if (!o.read) {
+            if (!w.spare) return null;
+            w.phases.forEach(function (ph) { o.I[ph] = 0; });
+            o.assumed = true;
+            o.when = 'no reading — taken as 0 A because the way is spare';
+        }
+        o.peak = Math.max.apply(null, w.phases.map(function (ph) { return o.I[ph]; }));
+        o.peakPh = w.phases.filter(function (ph) { return o.I[ph] === o.peak; })[0];
+        return o;
+    }
+
+    function phaseList(w, I) {
+        return w.phases.map(function (ph) { return ph + ' ' + fmt(I[ph], 1); }).join('  ·  ') + ' A';
+    }
+
+    /* The breaker the load's second cord would use: the same way number on
+       the partner PDU. Same number means same rack position and same phase
+       (the layout marks racks "P1 Q74 / P6 Q74"), so it is a true pair only
+       when both serve the same cabinet, or both are spare. */
+    function partnerOf(w) {
+        var otherPdu = PAIR[w.pdu];
+        var o = wayOf(otherPdu, w.q);
+        if (!o) return { way: null, why: otherPdu + ' has no way ' + w.q };
+        if (o.ph !== w.ph) return { way: null, other: o, why: otherPdu + ' ' + w.q + ' is on a different phase' };
+        if (w.spare && o.spare) return { way: o, kind: 'spare' };
+        if (!w.spare && !o.spare && o.rack === w.rack) return { way: o, kind: 'cabinet' };
+        return { way: null, other: o,
+                 why: otherPdu + ' ' + w.q + (o.spare ? ' is spare, while this way serves ' + w.rack
+                                                      : ' serves ' + o.rack) };
+    }
+
+    /* kW that a current represents on this kind of way at the stated PF:
+       three phase on a four-pole way, single phase on a two-pole way. */
+    /* headroom in words: never a negative "room left" */
+    function roomText(a) {
+        return a >= 0 ? fmt(a, 1) + ' A' : 'none — ' + fmt(-a, 1) + ' A beyond it';
+    }
+
+    function kwOn(w, amps, pf) {
+        return (w.ph === '3' ? SQRT3 * V : V_PH) * amps * pf / 1000;
+    }
+
+    /* Everything the capacity table and the two rules need about one way. */
+    function capacityOf(w) {
+        var c = { way: w, now: wayNow(w) };
+        if (!c.now || w.cont === null) return c;
+        c.lim = w.cont * PLAN;
+        c.pct = c.now.peak / w.cont * 100;
+        c.state = c.now.peak > w.cont ? 'fail' : c.now.peak > c.lim ? 'watch' : 'pass';
+        c.free1 = c.lim - c.now.peak;                           /* one cord, A per phase */
+        c.pair = partnerOf(w);
+        if (c.pair.way) {
+            var pn = wayNow(c.pair.way);
+            c.pairNow = pn;
+            if (pn && c.pair.way.cont !== null) {
+                c.limS = Math.min(c.lim, c.pair.way.cont * PLAN);
+                c.free2 = Math.min.apply(null, w.phases.map(function (ph) {
+                    return c.limS - (c.now.I[ph] + pn.I[ph]);
+                }));
+            }
+        }
+        return c;
+    }
+
+    /* Which phases of the way a load puts current into. A three-phase load
+       uses all three. A single-phase load on a four-pole way lands on one
+       phase that the proposal does not name, so the busiest is taken. */
+    function loadedPhases(w, p, now) {
+        if (w.ph !== '3') return [w.ph];
+        if (p.phases === '3') return ['R', 'Y', 'B'];
+        return [now.peakPh];
+    }
+
+    function ruleBreaker(p) {
+        var w = wayOf(p.point, p.way);
+        var dual = p.cords === 'dual';
+        var sp = KOC.spareCapacity;
+        var base = {
+            id: 'B1', title: w.pdu + ' ' + w.q + ' — the breaker the load connects to',
+            clause: 'KOC-E-003 Pt 1 Rev 4 cl. 11.2.2 (0.8 derating), cl. ' + sp.clause
+                  + ' (15 % spare); KOC-E-009 Rev 3 cl. 6.3',
+            rule: 'Current in the breaker after the addition ≤ 87 % of its continuous rating '
+                + '(0.8 × plate), and never above it'
+        };
+
+        if (p.phases === '3' && w.ph !== '3') {
+            return push(Object.assign({}, base, { verdict: 'fail', binding: true,
+                figures: [['Breaker', w.pdu + ' ' + w.q + '  ·  ' + w.plate + ' A ' + polesText(w)],
+                          ['Proposed load', 'three phase']],
+                detail: 'Not possible — a three-phase load cannot be connected to ' + w.pdu + ' ' + w.q
+                      + '. It is a two-pole RCBO: it supplies ' + w.ph + ' phase and neutral only. Choose a '
+                      + 'four-pole way, or, if the load is in fact single phase, set Connection to single '
+                      + 'phase.' }));
+        }
+
+        var c = capacityOf(w);
+        if (!c.now) {
+            return push(Object.assign({}, base, { verdict: 'unknown',
+                figures: [['Breaker', w.pdu + ' ' + w.q + '  ·  ' + w.plate + ' A ' + polesText(w)],
+                          ['Serves', w.rack]],
+                detail: 'Cannot assess — ' + w.pdu + ' ' + w.q + ' serves ' + w.rack + ' but has no reading '
+                      + (basis === 'today' ? 'on ' + $('date').value : 'in this period')
+                      + '. A breaker that was not read is not taken as 0 A: the cabinet behind it may be '
+                      + 'drawing current. Record it, or choose a date when it was read.' }));
+        }
+
+        var share = dual ? 0.5 : 1;
+        var add = p.amps * share;
+        var on = loadedPhases(w, p, c.now);
+        var after = {};
+        w.phases.forEach(function (ph) { after[ph] = c.now.I[ph] + (on.indexOf(ph) >= 0 ? add : 0); });
+        var peakPh = w.phases.reduce(function (m, ph) { return after[ph] > after[m] ? ph : m; }, w.phases[0]);
+        var peak = after[peakPh];
+        var pct = peak / w.cont * 100;
+        var state = peak > w.cont ? 'fail' : peak > c.lim ? 'watch' : 'pass';
+
+        /* the largest load this breaker alone would accept, keeping the 15 % */
+        var busiest = Math.max.apply(null, on.map(function (ph) { return c.now.I[ph]; }));
+        var maxA = Math.max(0, (c.lim - busiest) / share);
+        var loadKw = function (a) {
+            return (p.phases === '3' ? SQRT3 * V : V_PH) * a * p.pf / 1000;
+        };
+
+        var figures = [
+            ['Breaker', w.pdu + ' ' + w.q + '  ·  ' + w.plate + ' A ' + polesText(w)],
+            ['Supplied from', 'Feed ' + w.feed + ' — ' + upsOf(w.feed)],
+            ['Serves now', servesText(w)],
+            ['Continuous rating', fmt(w.cont, 1) + ' A   (0.8 × ' + w.plate + ' A)'],
+            ['15 % spare level', fmt(c.lim, 1) + ' A   (87 % of continuous)'],
+            ['Carrying now', phaseList(w, c.now.I)],
+            ['Basis', c.now.when],
+            ['Proposed load current', fmt(p.amps, 1) + ' A '
+                + (p.phases === '3' ? 'in each phase' : 'in one phase (single phase, ' + fmt(p.kva, 2)
+                                                         + ' kVA ÷ ' + fmt(V_PH, 1) + ' V)')],
+            ['Taken by this breaker', dual
+                ? fmt(add, 1) + ' A — half; the other cord takes the other half'
+                : fmt(add, 1) + ' A — all of it, single-corded'],
+            ['After the addition', phaseList(w, after)],
+            ['Busiest phase after', fmt(peak, 1) + ' A on ' + peakPh + ' — ' + fmt(pct, 1) + ' % of continuous'],
+            ['Room left to the 15 % level', roomText(c.lim - peak)],
+            ['Largest load this breaker accepts', fmt(loadKw(maxA), 2) + ' kW   (' + fmt(maxA, 1) + ' A'
+                + (dual ? ' total, half on each cord' : '') + ')']
+        ];
+
+        var detail;
+        var pre = busiest > c.lim
+            ? 'Before any addition this breaker already carries ' + fmt(busiest, 1) + ' A, above its '
+              + fmt(c.lim, 1) + ' A planning level, so it has no spare to offer. '
+            : '';
+        if (peak > w.plate) {
+            detail = pre + 'Not acceptable — ' + w.pdu + ' ' + w.q + ' would carry ' + fmt(peak, 1) + ' A on '
+                   + peakPh + ' phase, above its ' + w.plate + ' A plate. The breaker would trip in normal '
+                   + 'running.';
+        } else if (state === 'fail') {
+            detail = pre + 'Not acceptable — ' + w.pdu + ' ' + w.q + ' would carry ' + fmt(peak, 1) + ' A on '
+                   + peakPh + ' phase, ' + fmt(pct, 1) + ' % of its ' + fmt(w.cont, 1) + ' A continuous '
+                   + 'rating. It may hold for a while, but a breaker run above its continuous rating is '
+                   + 'not a planned condition.';
+        } else if (state === 'watch') {
+            detail = pre + 'Acceptable on rating, not on spare — ' + w.pdu + ' ' + w.q + ' would reach '
+                   + fmt(peak, 1) + ' A (' + fmt(pct, 1) + ' % of continuous). That is inside the rating but '
+                   + 'above the ' + fmt(c.lim, 1) + ' A level that keeps 15 % spare. The most this breaker '
+                   + 'takes with the margin kept is ' + fmt(loadKw(maxA), 2) + ' kW.';
+        } else {
+            detail = 'Acceptable — ' + w.pdu + ' ' + w.q + ' would reach ' + fmt(peak, 1) + ' A on '
+                   + peakPh + ' phase, ' + fmt(pct, 1) + ' % of its continuous rating, with '
+                   + fmt(c.lim - peak, 1) + ' A still in hand above the 15 % level.';
+        }
+        if (w.spare && !c.now.assumed && c.now.peak > 0) {
+            detail += ' Note that this spare way already shows ' + fmt(c.now.peak, 1) + ' A — something '
+                    + 'is connected to it that the schedule does not name.';
+        }
+
+        var notes = [];
+        if (c.now.assumed) notes.push('No reading is recorded for this spare way, so it is taken as empty. '
+            + 'Confirm with a clamp reading before connecting — several spare ways in this room have been '
+            + 'found carrying load.');
+        if (c.now.worstOnly) notes.push('On a historical basis the sheet keeps one figure per way, its worst '
+            + 'phase, so that figure is applied to all three phases. This can only overstate the loading.');
+        if (p.phases === '1' && w.ph === '3') notes.push('A single-phase load on a four-pole way lands on one '
+            + 'phase; which one is not stated, so the busiest phase (' + on[0] + ') is assumed.');
+        notes.push('Final circuit cable: by KOC-E-008 cl. 8.3.5 the breaker is set no higher than its cable '
+            + 'can carry, so a load within the breaker rating needs no separate cable check, provided the '
+            + 'installed conditions are unchanged. Advisory, not a KOC rule: IT power supplies leak current '
+            + 'to earth, and on a 30 mA RCBO the total should stay within 30 % of the trip level (BS 7671 '
+            + 'Reg. 531.3.2) to avoid nuisance tripping.');
+
+        return push(Object.assign({}, base, {
+            verdict: state, binding: true, figures: figures, detail: detail, note: notes.join(' ')
+        }));
+    }
+
+    function ruleRedundancy(p) {
+        var w = wayOf(p.point, p.way);
+        var other = PAIR[w.pdu];
+        var base = {
+            id: 'B2', title: 'If a feed is lost — can one breaker carry the whole load?',
+            clause: 'KOC-E-003 Pt 1 Rev 4 cl. 11.2.2; A/B redundancy is the room’s design intent '
+                  + '(every rack dual-fed), KOC-E-011 cl. 8.2 for the UPS',
+            rule: 'After a PDU, UPS or EMSB failure, the surviving breaker carries both cords’ load '
+                + 'and the whole new load, ≤ 87 % of its continuous rating'
+        };
+
+        if (p.cords !== 'dual') {
+            var detail = 'Single-corded — the load has one supply, ' + w.pdu + ' ' + w.q + ' on Feed '
+                + w.feed + '. It goes dark if that breaker, ' + w.pdu + ', ' + upsOf(w.feed) + ' or EMSB-'
+                + (w.feed === 'A' ? '1' : '2') + ' fails: the A/B redundancy every cabinet in the room has '
+                + 'does not reach it.';
+            return push(Object.assign({}, base, {
+                verdict: p.category === 'critical' ? 'watch' : 'na',
+                detail: detail + (p.category === 'critical'
+                    ? ' For a critical load that is a design decision to take knowingly. It is not a '
+                      + 'breach of a KOC clause, which is why this is a caution and not a failure.'
+                    : '')
+            }));
+        }
+
+        if (p.phases === '3' && w.ph !== '3') {
+            return push(Object.assign({}, base, { verdict: 'na',
+                detail: 'Not assessed — the load cannot be connected to this way at all (see B1).' }));
+        }
+
+        var c = capacityOf(w);
+        if (!c.now) {
+            return push(Object.assign({}, base, { verdict: 'unknown',
+                detail: 'Cannot assess — ' + w.pdu + ' ' + w.q + ' has no reading, so what the surviving '
+                      + 'breaker would carry is unknown.' }));
+        }
+        if (!c.pair.way) {
+            return push(Object.assign({}, base, { verdict: 'unknown',
+                detail: 'Cannot assess — the breaker for the second cord is not identifiable: '
+                      + c.pair.why + '. The second cord needs a breaker of its own on ' + other
+                      + ', and that breaker has to carry the whole load if Feed ' + w.feed + ' is lost. '
+                      + 'Name it and check it before connecting, or choose a way whose partner on ' + other
+                      + ' is free.' }));
+        }
+        var pw = c.pair.way, pn = c.pairNow;
+        if (!pn) {
+            return push(Object.assign({}, base, { verdict: 'unknown',
+                detail: 'Cannot assess — the other cord’s breaker, ' + pw.pdu + ' ' + pw.q
+                      + ', serves ' + pw.rack + ' and has no reading. A breaker that was not read is not '
+                      + 'taken as 0 A.' }));
+        }
+
+        var on = loadedPhases(w, p, c.now);
+        var contS = Math.min(w.cont, pw.cont), plateS = Math.min(w.plate, pw.plate), limS = contS * PLAN;
+        var gov = pw.plate < w.plate ? pw : w;
+        var total = {};
+        w.phases.forEach(function (ph) {
+            total[ph] = c.now.I[ph] + pn.I[ph] + (on.indexOf(ph) >= 0 ? p.amps : 0);
+        });
+        var peakPh = w.phases.reduce(function (m, ph) { return total[ph] > total[m] ? ph : m; }, w.phases[0]);
+        var peak = total[peakPh];
+        var pct = peak / contS * 100;
+        var state = peak > contS ? 'fail' : peak > limS ? 'watch' : 'pass';
+        var both = Math.max.apply(null, on.map(function (ph) { return c.now.I[ph] + pn.I[ph]; }));
+        var maxA = Math.max(0, limS - both);
+        var loadKw = function (a) { return (p.phases === '3' ? SQRT3 * V : V_PH) * a * p.pf / 1000; };
+
+        var figures = [
+            ['Other cord’s breaker', pw.pdu + ' ' + pw.q + '  ·  ' + pw.plate + ' A  ·  Feed ' + pw.feed
+                + ' — ' + upsOf(pw.feed)],
+            ['Why these two pair', c.pair.kind === 'cabinet'
+                ? 'same cabinet (' + w.rack + '), same way number and phase'
+                : 'both spare, same way number and phase — a free pair'],
+            ['Governing breaker', w.plate === pw.plate
+                ? 'both are ' + w.plate + ' A'
+                : gov.pdu + ' ' + gov.q + ', ' + gov.plate + ' A — the smaller one; after a failure it '
+                  + 'carries everything'],
+            ['Carrying now', w.pdu + ' ' + w.q + ': ' + phaseList(w, c.now.I) + '   |   '
+                + pw.pdu + ' ' + pw.q + ': ' + phaseList(pw, pn.I)],
+            ['New load, whole', fmt(p.amps, 1) + ' A ' + (p.phases === '3' ? 'per phase' : 'in one phase')],
+            ['Surviving breaker after a feed is lost', phaseList(w, total)],
+            ['Busiest phase', fmt(peak, 1) + ' A on ' + peakPh + ' — ' + fmt(pct, 1) + ' % of '
+                + fmt(contS, 1) + ' A continuous'],
+            ['Room left to the 15 % level', roomText(limS - peak)],
+            ['Largest dual-corded load the pair accepts', fmt(loadKw(maxA), 2) + ' kW   (' + fmt(maxA, 1) + ' A)']
+        ];
+
+        /* The pair may be past its limit before anything is added - G-10 is.
+           Say so first: the new load is then not the cause, and no size of it
+           can be accepted until the existing load is dealt with. */
+        var before = '';
+        if (both > limS) {
+            before = 'Before any addition, the pair already carries ' + fmt(both, 1) + ' A between its two cords'
+                   + (both > plateS
+                       ? ' — more than the ' + plateS + ' A plate of ' + gov.pdu + ' ' + gov.q
+                         + ', so this cabinet has no working redundancy today. '
+                       : both > contS
+                           ? ' — above the ' + fmt(contS, 1) + ' A continuous rating of ' + gov.pdu + ' ' + gov.q
+                             + ' once one feed is lost. '
+                           : ' — above the ' + fmt(limS, 1) + ' A level that keeps 15 % spare. ')
+                   + 'No new load fits on this pair until that is resolved. ';
+        }
+
+        var detail;
+        if (peak > plateS) {
+            detail = before + 'Not acceptable — redundancy is lost. If either feed fails, the surviving breaker '
+                   + 'would carry ' + fmt(peak, 1) + ' A on ' + peakPh + ' phase, above the ' + plateS
+                   + ' A plate of ' + gov.pdu + ' ' + gov.q + '. It trips, and the cabinet goes dark on a '
+                   + 'single failure — the event the second cord exists for.';
+        } else if (state === 'fail') {
+            detail = before + 'Not acceptable — after a feed is lost the surviving breaker would carry '
+                   + fmt(peak, 1) + ' A, ' + fmt(pct, 1) + ' % of its continuous rating. It would hold for a '
+                   + 'while but not indefinitely, and a failure is exactly when it has to hold until repair.';
+        } else if (state === 'watch') {
+            detail = before + 'Acceptable on rating, not on spare — after a feed is lost the surviving breaker '
+                   + 'would carry ' + fmt(peak, 1) + ' A (' + fmt(pct, 1) + ' % of continuous), inside the '
+                   + 'rating but above the 15 % level. The largest dual-corded load that keeps the margin '
+                   + 'is ' + fmt(loadKw(maxA), 2) + ' kW.';
+        } else {
+            detail = 'Acceptable — redundancy holds. If either feed is lost the surviving breaker carries '
+                   + fmt(peak, 1) + ' A, ' + fmt(pct, 1) + ' % of continuous, with the 15 % margin intact.';
+        }
+
+        var notes = ['In normal running each cord carries about half. The case tested here is the one that '
+            + 'matters: one feed lost — a PDU, ' + upsOf(w.feed) + ' or its EMSB — and the other '
+            + 'cord taking everything. It is the same failover the Cabinet Load page works out.'];
+        if (basis !== 'today') notes.push('On a historical basis the two breakers’ worst readings may '
+            + 'come from different dates, so adding them can only overstate the load.');
+        if (c.now.assumed || pn.assumed) notes.push('A spare way with no reading is taken as empty; confirm '
+            + 'both with a clamp reading.');
+
+        return push(Object.assign({}, base, {
+            verdict: state, binding: true, figures: figures, detail: detail, note: notes.join(' ')
+        }));
+    }
+
     var CHIP = { pass: ['ok', 'Passes'], fail: ['bad', 'Fails'],
                  unknown: ['warn', 'Cannot assess'], watch: ['warn', 'Caution'],
                  na: ['muted', 'Not applicable'] };
@@ -577,7 +1003,8 @@
         c.appendChild(el('div', 'rule-clause', r.clause));
 
         if (r.figures) {
-            var f = el('div', 'figs');
+            /* the breaker rules carry long values; two wide columns read better than three */
+            var f = el('div', 'figs' + (/^B/.test(r.id) ? ' wide' : ''));
             r.figures.forEach(function (x) {
                 var row = el('div', 'fig');
                 row.appendChild(el('span', '', x[0]));
@@ -720,6 +1147,9 @@
         host.innerHTML = '';
         out = [];
 
+        /* the capacity table needs no proposal - only the readings */
+        renderWayTable();
+
         if (!p) {
             $('verdict').className = 'verdict';
             $('verdict').innerHTML = '';
@@ -731,12 +1161,24 @@
         /* what was proposed */
         var sm = $('summary');
         sm.innerHTML = '';
-        [['Proposed load', fmt(p.kw, 1) + ' kW  ·  ' + fmt(p.kva, 1) + ' kVA  ·  ' + fmt(p.amps, 1) + ' A'],
-         ['Power factor', p.pf.toFixed(2)],
-         ['Load type', p.type + '  — diversity ' + (p.df * 100) + ' %'],
-         ['Contribution to Maximum Demand', fmt(p.demandAmps, 1) + ' A'],
-         ['Category', p.category],
-         ['Connection point', p.point]].forEach(function (x) {
+        var lines = [
+            ['Proposed load', fmt(p.kw, 1) + ' kW  ·  ' + fmt(p.kva, 1) + ' kVA  ·  ' + fmt(p.amps, 1) + ' A'
+                + (p.phases === '1' ? ' in one phase' : ' per phase')],
+            ['Power factor', p.pf.toFixed(2)],
+            ['Load type', p.type + '  — diversity ' + (p.df * 100) + ' %'],
+            ['Contribution to Maximum Demand', fmt(p.demandAmps, 1) + ' A'],
+            ['Category', p.category],
+            ['Connection point', p.point]
+        ];
+        var bw = p.way ? wayOf(p.point, p.way) : null;
+        if (bw) {
+            lines.push(['PDU breaker', bw.q + '  ·  ' + bw.plate + ' A  ·  ' + (bw.ph === '3' ? 'three phase' : bw.ph + ' phase')
+                        + '  ·  ' + servesText(bw)]);
+            lines.push(['Supply', p.cords === 'dual'
+                ? 'dual-corded — half on each feed; all of it on one if a feed is lost'
+                : 'single-corded — this breaker only']);
+        }
+        lines.forEach(function (x) {
             var d = el('div', 'fig');
             d.appendChild(el('span', '', x[0]));
             d.appendChild(el('b', '', x[1]));
@@ -744,7 +1186,13 @@
         });
 
         renderCoverage();
+        renderWayNote(p);
 
+        /* nearest the load first: the breaker, then its partner, then the board and upstream */
+        if (bw) {
+            ruleBreaker(p);
+            ruleRedundancy(p);
+        }
         ruleIncomer(p);
         ruleTransformer(p);
         ruleGenerator(p);
@@ -1010,6 +1458,186 @@
        data
        --------------------------------------------------------- */
 
+    /* ---------------------------------------------------------
+       the breaker picker and the capacity table
+       --------------------------------------------------------- */
+
+    function fillWays() {
+        var point = $('point').value, sel = $('way');
+        var show = isPdu(point);
+        $('wayWrap').hidden = !show;
+        $('waySection').hidden = !show;
+        if (!show) return;
+
+        /* keep the choice when only the data changes; start fresh on another PDU */
+        var keep = sel.getAttribute('data-pdu') === point ? sel.value : '';
+        sel.innerHTML = '';
+        var o0 = document.createElement('option');
+        o0.value = '';
+        o0.textContent = 'Board level — no particular breaker (PDU incomer and upstream only)';
+        sel.appendChild(o0);
+
+        var live = document.createElement('optgroup'), spare = document.createElement('optgroup');
+        DC_CONFIG.pduCircuits[point].forEach(function (x) {
+            var w = wayOf(point, x.c);
+            var o = document.createElement('option');
+            o.value = x.c;
+            o.textContent = x.c + '  ·  ' + servesText(w) + '  ·  ' + w.plate + ' A  ·  '
+                          + (w.ph === '3' ? 'three phase' : 'single phase ' + w.ph);
+            (w.spare ? spare : live).appendChild(o);
+        });
+        live.label = 'Live breakers (' + live.children.length + ')';
+        spare.label = 'Spare breakers (' + spare.children.length + ')';
+        sel.appendChild(live);
+        sel.appendChild(spare);
+        sel.setAttribute('data-pdu', point);
+        sel.value = keep;
+    }
+
+    /* one line under the pickers, so the choice is confirmed in words */
+    function renderWayNote(p) {
+        var n = $('wayNote');
+        if (!n) return;
+        n.textContent = '';
+        if (!p || !p.way) {
+            if (p && isPdu(p.point)) n.textContent = 'Choose a breaker to test the load where it actually '
+                + 'connects — or pick one from the capacity table below.';
+            $('cordsWrap').hidden = true;
+            return;
+        }
+        $('cordsWrap').hidden = false;
+        var w = wayOf(p.point, p.way), pr = partnerOf(w);
+        n.textContent = w.pdu + ' ' + w.q + ' is a ' + w.plate + ' A ' + polesText(w) + ' on Feed ' + w.feed
+            + ' (' + upsOf(w.feed) + '), '
+            + (w.spare ? 'currently spare' + (servesText(w) === 'Spare' ? '' : ' ' + servesText(w).replace(/^Spare\s*/, ''))
+                       : 'serving ' + w.rack) + '. '
+            + (pr.way
+                ? 'Its partner for a second cord is ' + pr.way.pdu + ' ' + pr.way.q + ', ' + pr.way.plate + ' A'
+                  + (pr.kind === 'spare' ? ', also spare.' : ', on the same cabinet.')
+                : 'It has no free partner on ' + PAIR[w.pdu] + ': ' + pr.why + '.');
+    }
+
+    function renderWayTable() {
+        var point = $('point').value;
+        if (!isPdu(point)) return;
+        var host = $('wayTable'), strip = $('wayStrip'), key = $('wayKey');
+        host.innerHTML = ''; strip.innerHTML = ''; key.innerHTML = '';
+        $('wayTitle').textContent = point + ' — capacity of every breaker';
+
+        var pf = parseFloat($('pf').value);
+        if (!isFinite(pf) || pf <= 0 || pf > 1) pf = 0.9;
+        var chosen = $('way').value;
+        var filter = $('wayFilter').value;
+
+        var all = DC_CONFIG.pduCircuits[point].map(function (x) { return capacityOf(wayOf(point, x.c)); });
+
+        /* the summary strip */
+        var liveN = all.filter(function (c) { return !c.way.spare; }).length;
+        var unreadLive = all.filter(function (c) { return !c.way.spare && !c.now; }).length;
+        var hot = all.filter(function (c) { return c.state === 'watch' || c.state === 'fail'; }).length;
+        var bestSpare = all.filter(function (c) { return c.way.spare && c.free2 !== undefined; })
+            .sort(function (a, b) { return kwOn(b.way, b.free2, pf) - kwOn(a.way, a.free2, pf); })[0];
+        [['Live breakers', String(liveN), 'serving cabinets and sockets'],
+         ['Spare breakers', String(all.length - liveN), 'free to connect to'],
+         ['Above 87 % now', String(hot), hot ? 'no room on these' : 'none'],
+         ['Live, not read', String(unreadLive), unreadLive ? 'cannot be assessed' : 'every live way read'],
+         ['Best free spare pair', bestSpare ? fmt(kwOn(bestSpare.way, bestSpare.free2, pf), 1) + ' kW' : '—',
+          bestSpare ? bestSpare.way.q + ' with ' + PAIR[point] + ' ' + bestSpare.way.q + ', dual-corded' : 'no spare pair']
+        ].forEach(function (s) {
+            var d = el('div', 'wstat');
+            d.appendChild(el('div', 'k', s[0]));
+            d.appendChild(el('div', 'v', s[1]));
+            d.appendChild(el('div', 's', s[2]));
+            strip.appendChild(d);
+        });
+
+        var head = el('div', 'wrow whead');
+        ['Way', 'Serves', 'Breaker', 'Carrying now', 'Loading', 'Free — one cord', 'Free — dual-corded, redundant', '']
+            .forEach(function (h) { head.appendChild(el('span', '', h)); });
+        host.appendChild(head);
+
+        all.forEach(function (c) {
+            var w = c.way;
+            if (filter === 'live' && w.spare) return;
+            if (filter === 'spare' && !w.spare) return;
+            var row = el('div', 'wrow' + (w.spare ? ' spare' : '') + (c.state ? ' ' + c.state : ' unread')
+                                + (w.q === chosen ? ' on' : ''));
+            row.setAttribute('role', 'button');
+            row.tabIndex = 0;
+            row.title = 'Study a load on ' + point + ' ' + w.q;
+
+            row.appendChild(el('span', 'wq', w.q));
+            row.appendChild(el('span', 'wserve', servesText(w)));
+            row.appendChild(el('span', 'wnum', w.plate + ' A  ·  ' + (w.ph === '3' ? '3φ' : w.ph)));
+
+            if (!c.now) {
+                var miss = el('span', 'wsub', 'not read — cannot be assessed');
+                miss.style.gridColumn = '4 / -1';
+                row.appendChild(miss);
+            } else {
+                var nowCell = el('span', 'wnum', fmt(c.now.peak, 1) + ' A' + (c.now.assumed ? '*' : ''));
+                if (c.now.assumed) nowCell.title = 'No reading; taken as 0 A because the way is spare';
+                row.appendChild(nowCell);
+
+                var lc = el('span', '');
+                lc.appendChild(el('span', 'wnum', fmt(c.pct, 0) + ' % of ' + fmt(w.cont, 1) + ' A'));
+                var bar = el('div', 'wbar');
+                var bi = el('i'); bi.style.width = Math.min(100, c.pct / 115 * 100) + '%';
+                var bt = el('span', 't'); bt.style.left = (87 / 115 * 100) + '%';
+                bar.appendChild(bi); bar.appendChild(bt);
+                lc.appendChild(bar);
+                row.appendChild(lc);
+
+                var f1 = el('span', '');
+                f1.appendChild(el('span', 'wnum', c.free1 > 0 ? fmt(c.free1, 1) + ' A' : 'none'));
+                if (c.free1 > 0) f1.appendChild(el('div', 'wsub', '≈ ' + fmt(kwOn(w, c.free1, pf), 2) + ' kW'));
+                row.appendChild(f1);
+
+                var f2 = el('span', '');
+                if (c.free2 === undefined) {
+                    f2.appendChild(el('span', 'wsub', c.pair && c.pair.way ? 'partner not read' : 'no free partner'));
+                } else {
+                    f2.appendChild(el('span', 'wnum', c.free2 > 0 ? fmt(c.free2, 1) + ' A' : 'none'));
+                    f2.appendChild(el('div', 'wsub', (c.free2 > 0 ? '≈ ' + fmt(kwOn(w, c.free2, pf), 2) + ' kW, ' : '')
+                        + 'with ' + PAIR[point] + ' ' + w.q));
+                }
+                row.appendChild(f2);
+
+                row.appendChild(el('span', 'wtag', c.state === 'fail' ? 'over rating'
+                                                   : c.state === 'watch' ? 'above 87 %' : ''));
+            }
+
+            var pick = function () {
+                $('way').value = w.q;
+                run();
+                var r = $('results');
+                if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+            row.addEventListener('click', pick);
+            row.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+            });
+            host.appendChild(row);
+        });
+
+        var k = el('div', 'rule-note');
+        k.style.borderTop = '0';
+        k.style.marginTop = '10px';
+        k.innerHTML =
+            '<b>How to read this table.</b> Continuous rating is 0.8 × the breaker (KOC-E-003 cl. 11.2.2). '
+          + '<b>Free — one cord</b> is the room left to 87 % of continuous, which keeps KOC’s 15 % spare, '
+          + 'on the busiest phase. <b>Free — dual-corded, redundant</b> is what a new dual-corded load can add '
+          + 'so that <i>either</i> breaker of the pair alone still carries the whole cabinet if a feed is lost: '
+          + '87 % of the smaller breaker, less what both carry now. For IT equipment that second figure is the '
+          + 'one that counts. kW are at the power factor entered above (' + pf.toFixed(2) + '), as a three-phase '
+          + 'load on a 3φ way and a single-phase load on a single-phase way. '
+          + (basis === 'today' ? 'Readings of ' + $('date').value + '.'
+                               : 'Worst recorded in the last ' + basis + ' year' + (basis === '1' ? '' : 's')
+                                 + '; on a four-pole way that worst phase is applied to all three.')
+          + ' * a spare with no reading, taken as empty — confirm on site. Click a row to study a load on it.';
+        key.appendChild(k);
+    }
+
     function setBadge(msg, busy) {
         var b = $('status');
         b.innerHTML = '';
@@ -1117,10 +1745,13 @@
 
         try { plateBasis = localStorage.getItem(DERATE_KEY) || 'frame'; } catch (e) { plateBasis = 'frame'; }
 
-        ['size', 'unit', 'pf', 'loadType', 'category', 'point', 'phases'].forEach(function (id) {
+        ['size', 'unit', 'pf', 'loadType', 'category', 'phases', 'way', 'cords', 'wayFilter'].forEach(function (id) {
             $(id).addEventListener('input', run);
             $(id).addEventListener('change', run);
         });
+        /* a new connection point refills the breaker list before the study reruns */
+        $('point').addEventListener('change', function () { fillWays(); run(); });
+        fillWays();
         $('date').addEventListener('change', load);
         $('refresh').addEventListener('click', load);
         $('basis').addEventListener('change', function () {

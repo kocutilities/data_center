@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Load Study">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=d028c725">
-<script src="assets/js/auth.js?v=d028c725"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=f935e893">
+<script src="assets/js/auth.js?v=f935e893"></script>
 <script>KOCAuth.require();</script>
 <style>
 .verdict { border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
@@ -55,6 +55,8 @@
        border-bottom: 1px dashed var(--border); padding: 4px 0; }
 .fig span { color: var(--text-faint); }
 .fig b { font-variant-numeric: tabular-nums; text-align: right; }
+.figs.wide { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+@media (max-width: 620px) { .figs.wide { grid-template-columns: 1fr; } }
 
 .ftable { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
 .frow { display: grid; grid-template-columns: minmax(120px,1.1fr) 112px minmax(120px,1.15fr) 78px 78px 92px 66px 84px;
@@ -107,6 +109,43 @@
 .scope-head:first-child { margin-top: 0; }
 
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+
+/* ---------- PDU breakers ---------- */
+.way-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .way-grid { grid-template-columns: 1fr; } }
+
+.wstrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.wstat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.wstat .k { font-size: 10.4px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); }
+.wstat .v { font-size: 20px; font-weight: 660; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.wstat .s { font-size: 11.4px; color: var(--text-faint); }
+
+/* scrolls inside itself on a narrow screen; the page never does */
+.wtable { display: flex; flex-direction: column; gap: 3px; overflow-x: auto; padding-bottom: 2px; }
+.wrow { display: grid; min-width: 880px;
+        grid-template-columns: 50px minmax(140px, 1.5fr) 92px 96px minmax(120px, 1fr) 118px minmax(170px, 1.2fr) 86px;
+        gap: 10px; align-items: center; padding: 7px 10px; border-radius: 8px; font-size: 12.5px;
+        background: var(--surface-2); border: 1px solid transparent; cursor: pointer; }
+.wrow:hover, .wrow:focus-visible { border-color: var(--border-strong); outline: none; }
+.wrow.whead { background: transparent; cursor: default; font-size: 10.4px; letter-spacing: .1em;
+              text-transform: uppercase; color: var(--text-faint); }
+.wrow.whead:hover { border-color: transparent; }
+.wrow.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.wrow.watch { background: var(--warn-soft); }
+.wrow.fail { background: var(--bad-soft); }
+.wrow.unread { opacity: .75; }
+.wq { font-weight: 650; font-variant-numeric: tabular-nums; }
+.wrow.spare .wserve { color: var(--text-faint); font-style: italic; }
+.wnum { font-variant-numeric: tabular-nums; }
+.wsub { display: block; font-size: 11px; color: var(--text-faint); }
+.wtag { font-size: 11.3px; font-weight: 600; color: var(--text-faint); }
+.wrow.watch .wtag { color: var(--warn); }
+.wrow.fail .wtag { color: var(--bad); }
+.wbar { position: relative; height: 6px; border-radius: 4px; background: var(--surface-3); margin-top: 4px; }
+.wbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--good); }
+.wrow.watch .wbar i { background: var(--warn); }
+.wrow.fail .wbar i { background: var(--bad); }
+.wbar .t { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text-faint); }
 
 @media (max-width: 900px) {
     .frow { grid-template-columns: 1fr 1fr; }
@@ -258,6 +297,22 @@
                         <label for="point">Connection point</label>
                         <select id="point"></select>
                     </div>
+                    <div id="wayWrap" style="grid-column:1/-1" hidden>
+                        <div class="way-grid">
+                            <div>
+                                <label for="way">PDU breaker</label>
+                                <select id="way"></select>
+                            </div>
+                            <div id="cordsWrap" hidden>
+                                <label for="cords">How the load is supplied</label>
+                                <select id="cords">
+                                    <option value="dual" selected>Dual-corded — one supply on each feed</option>
+                                    <option value="single">Single-corded — this breaker only</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-note" id="wayNote" style="margin-top:6px"></div>
+                    </div>
                 </div>
 
                 <div class="figs" id="summary" style="margin-top:14px"></div>
@@ -277,6 +332,23 @@
                 <div class="verdict" id="verdict"></div>
                 <div id="scopeNote"></div>
                 <div id="results"></div>
+            </section>
+
+            <section class="section" id="waySection" hidden>
+                <div class="section-head">
+                    <h2 id="wayTitle">PDU breaker capacity</h2>
+                    <span class="hint">every outgoing breaker, live and spare — click one to study it</span>
+                    <span class="spacer"></span>
+                    <label for="wayFilter" style="margin:0">Show</label>
+                    <select id="wayFilter" style="width:auto">
+                        <option value="all" selected>All breakers</option>
+                        <option value="live">Live only</option>
+                        <option value="spare">Spare only</option>
+                    </select>
+                </div>
+                <div class="wstrip" id="wayStrip"></div>
+                <div class="wtable" id="wayTable"></div>
+                <div id="wayKey"></div>
             </section>
 
             <section class="section">
@@ -311,10 +383,10 @@
     </main>
 </div>
 
-<script src="assets/js/config.js?v=d028c725"></script>
-<script src="assets/js/koc-criteria.js?v=d028c725"></script>
-<script src="assets/js/system-model.js?v=d028c725"></script>
-<script src="assets/js/additional-load.js?v=d028c725"></script>
-<script src="assets/js/auth-ui.js?v=d028c725"></script>
+<script src="assets/js/config.js?v=f935e893"></script>
+<script src="assets/js/koc-criteria.js?v=f935e893"></script>
+<script src="assets/js/system-model.js?v=f935e893"></script>
+<script src="assets/js/additional-load.js?v=f935e893"></script>
+<script src="assets/js/auth-ui.js?v=f935e893"></script>
 </body>
 </html>
