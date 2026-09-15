@@ -163,7 +163,9 @@ const DC_CONFIG = {
         { c: 'Q43', rack: 'Cabin K-05', breaker: '25A', ph: 'R' },
         { c: 'Q44', rack: 'Cabin K-06', breaker: '25A', ph: 'Y' },
         { c: 'Q45', rack: 'Cabin K-06', breaker: '25A', ph: 'B' },
-        { c: 'Q46', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'R' },
+        /* Temporary since 2026-03-01: A-12 moved here after Q76 tripped - PDU-01 SLD 15-09-26.
+           pairQ: its Feed B partner is PDU 6 Q76, not PDU 6 Q46. See supplyChanges SC-001. */
+        { c: 'Q46', rack: 'Cabin A12', breaker: '25A', ph: 'R', pairQ: 'Q76' },
         { c: 'Q47', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'Y' },
         { c: 'Q48', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'B' },
         { c: 'Q49', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'R' },
@@ -193,7 +195,7 @@ const DC_CONFIG = {
         { c: 'Q73', rack: 'A Building Room A14 floor socket', breaker: '16A', ph: 'R' },
         { c: 'Q74', rack: 'Cabin A11', breaker: '25A', ph: 'Y' },
         { c: 'Q75', rack: 'RMS', breaker: '16A', ph: 'B' },
-        { c: 'Q76', rack: 'Cabin A12', breaker: '25A', ph: 'R' },
+        { c: 'Q76', rack: 'Cabin A12 SPARE', breaker: '25A', ph: 'R' },
         { c: 'Q77', rack: 'Cabin A13', breaker: '16A', ph: 'Y' },
         { c: 'Q78', rack: 'SPARE', breaker: '16A', ph: 'B' }
     ],
@@ -697,7 +699,122 @@ const DC_CONFIG = {
         { c: 'Q47', rack: 'SPARE', breaker: '32A', ph: '3' },
         { c: 'Q48', rack: 'SPARE', breaker: '32A', ph: '3' }
     ],
-  }
+  },
+
+  /* ---------------------------------------------------------------
+     Supply changes - cabinets not fed the standard way.
+
+     The standard: a cabinet's two supplies use the SAME way number on
+     the two PDUs of its pair (the layout marks racks "P1 Q74 / P6 Q74").
+     This register holds every known departure from that, for the Supply
+     Changes page:
+
+       kind 'temporary'  a change made on site, with its date and reason
+       kind 'review'     found by comparing the drawings and readings, not
+                         yet explained - for further review
+       kind 'drawing'    the supply is standard; a drawing is wrong
+
+     Ways are 'PDU n|Qnn', the reading sheet's own key, so the page can
+     show what each one carries. To add an entry: copy one, give it the
+     next id, and cite where it came from.
+     --------------------------------------------------------------- */
+  supplyChanges: [
+    {
+      id: 'SC-001', kind: 'temporary', status: 'active',
+      cabinet: 'Cabin A12', label: 'A-12',
+      date: '2026-03-01',
+      reason: 'A power fluctuation on 01-03-2026 tripped the supply to Cabinet A-12 on PDU-1 Q76. '
+            + 'As a temporary arrangement, A-12 was reconnected to PDU-1 Q46.',
+      reported: 'Advised by Jais, 2026-09-15',
+      original: [
+        { feed: 'A', way: 'PDU 1|Q76', detail: '25 A DP RCBO 30 mA, R phase' },
+        { feed: 'B', way: 'PDU 6|Q76', detail: '25 A DP RCBO 30 mA, R phase' }
+      ],
+      temporary: [
+        { feed: 'A', way: 'PDU 1|Q46', detail: '25 A DP RCBO 30 mA, R phase \u2014 an industrial-socket circuit' },
+        { feed: 'B', way: 'PDU 6|Q76', detail: 'unchanged', unchanged: true }
+      ],
+      notes: [
+        'Like for like: Q46 is the same 25 A, 30 mA RCBO on the same R phase as Q76, so the breaker '
+          + 'limits and the phase loading are unchanged.',
+        'PDU-1 Q76 is now drawn CABIN A12 SPARE \u2014 kept for A-12, not released.'
+      ],
+      drawings: [
+        'PDU-01 single line diagram, dated 15-09-26: Q46 CABIN A-12 IND.SOCKET (was SPARE IND.SOCKET); '
+          + 'Q76 CABIN A12 SPARE (was CABIN A12). Checked row by row against the 10-09-26 issue; the only '
+          + 'other edits are a relettered Q19 (already spare) and the title block.',
+        'Computer Centre server room layout, 15-09-2026: in A-12\u2019s box Q46 P1 added, Q76 P1 marked SPARE, '
+          + 'Q76 P6 unchanged. Checked against the 10-09-2026 issue (now in 99-Archive); the only other edit '
+          + 'is the drawn-by name.'
+      ],
+      actions: [
+        'Find out why PDU-1 Q76 tripped before deciding whether A-12 goes back to it \u2014 whether it was the '
+          + 'overcurrent or the 30 mA residual-current element, and test the RCBO.',
+        'Read PDU-1 Q46 on the next round. There is no reading of it on record: the 16-08-2026 value entered '
+          + 'against PDU-1 Q76 was removed from the sheet on 15-09-2026, so A-12\u2019s Feed A current is unknown.',
+        'Set a date to restore Q76, or record the change as permanent and redraw it as such.',
+        'Move the superseded 10-09-2026 PDU-1.pdf to 99-Archive. The 15-09 issue was saved as PDU-01.pdf in the '
+          + 'older \u201cPDU 1 to 8 Single Line Diagram\u201d folder, and the 08-09 PDU-01.pdf was archived instead.'
+      ]
+    },
+    {
+      id: 'SR-001', kind: 'review', status: 'for-review',
+      cabinet: 'Cabin A-14', label: 'A-14',
+      title: 'The drawings disagree about PDU-6 Q26',
+      category: 'Drawings disagree',
+      schedules: 'PDU-1 Q27 (32 A, B) for A-14, and Q26 drawn SPARE CABIN A-14. PDU-6 Q26 (32 A, Y) and Q27 (32 A, B) '
+               + 'both for A-14 \u2014 one way on Feed A, two on Feed B (PDU-6 SLD 10-09-26).',
+      layout: 'A-14\u2019s box uses Q27 P1 and Q27 P6; Q26 P1 and Q26 P6 are both marked SPARE (layout 15-09-2026).',
+      ways: ['PDU 1|Q27', 'PDU 6|Q27', 'PDU 6|Q26', 'PDU 1|Q26'],
+      finding: 'The layout and the readings agree: A-14 runs on the standard pair Q27 / Q27, and PDU-6 Q26 read '
+             + '0 A on 16-08-2026. The PDU-6 schedule still shows Q26 in use \u2014 most likely the Q26 pair was '
+             + 'withdrawn and only the PDU-1 drawing was updated.',
+      action: 'Confirm on site that nothing is connected to PDU-6 Q26. If so, redraw it as SPARE CABIN A-14 on the '
+            + 'PDU-6 SLD; the app then pairs A-14 exactly instead of approximately.'
+    },
+    {
+      id: 'SR-002', kind: 'review', status: 'for-review',
+      cabinet: 'Cabin G-01', also: 'Cabin G-02', label: 'G-01 and G-02',
+      title: 'Each has one extra way on one feed only',
+      category: 'Non-standard pairing',
+      schedules: 'G-01: Q17 and Q42 on both PDU-5 and PDU-4, plus PDU-5 Q78 (25 A, B) on Feed A only. '
+               + 'G-02: Q18 and Q41 on both, plus PDU-4 Q77 (16 A, Y) on Feed B only. PDU-4 Q78 and PDU-5 Q77 are spare.',
+      layout: 'Agrees with the schedules: G-01 shows Q17 P4/P5, Q42 P4/P5 and Q78 P5; G-02 shows Q18 P4/P5, '
+            + 'Q41 P4/P5 and Q77 P4 (layout 15-09-2026).',
+      ways: ['PDU 5|Q78', 'PDU 4|Q77', 'PDU 4|Q78', 'PDU 5|Q77'],
+      finding: 'The two unpaired ways carry almost the same current on opposite feeds \u2014 3.2 A on PDU-5 Q78 '
+             + '(G-01, Feed A) and 3.0 A on PDU-4 Q77 (G-02, Feed B), 16-08-2026. That is the pattern of one '
+             + 'dual-corded device with a cord to each: redundant, but not through a standard pair. If it is '
+             + 'two separate single-corded loads instead, neither has a second supply. Not confirmed.',
+      action: 'Trace the cords on PDU-5 Q78 and PDU-4 Q77 on site. If they are one device, record the pair so '
+            + 'the app can test its failover exactly; if not, each is a single-fed load to be listed as such.'
+    },
+    {
+      id: 'SR-003', kind: 'drawing', status: 'for-review',
+      cabinet: 'Cabin A06', label: 'A-06',
+      title: 'Layout marks lettered wrongly',
+      category: 'Drawing error',
+      schedules: 'PDU-1 Q53 (25 A, Y) and Q54 (25 A, B); PDU-6 Q53 and Q54 \u2014 the standard pairing.',
+      layout: 'The four marks read Q53 P1, Q54 P6 (in the P1 colour) and Q53 P1, Q54 P6 (in the P6 colour): '
+            + 'P1 and P6 are swapped on two labels, while the colours are right.',
+      ways: ['PDU 1|Q53', 'PDU 6|Q53', 'PDU 1|Q54', 'PDU 6|Q54'],
+      finding: 'Supply is standard: 1.7 A on both Q53 ways and 4.5 / 4.3 A on the Q54 ways, 16-08-2026. '
+             + 'Only the lettering is wrong.',
+      action: 'Correct the layout to Q53 P1, Q54 P1, Q53 P6, Q54 P6.'
+    },
+    {
+      id: 'SR-004', kind: 'drawing', status: 'for-review',
+      cabinet: 'Cabin H-04', label: 'H-04 / H-05',
+      title: 'Reserved ways named for H-05 are drawn in H-04\u2019s box',
+      category: 'Drawing inconsistency',
+      schedules: 'Q30 (16 A, B) and Q31 (16 A, R) on both PDU-5 and PDU-4 are SPARE CABIN H-05.',
+      layout: 'The same four outlets are drawn, marked SPARE, inside H-04\u2019s box; there is no H-05 on the layout.',
+      ways: ['PDU 5|Q29', 'PDU 4|Q29'],
+      finding: 'H-04\u2019s own supply is standard (Q29 on both PDUs). The question is only which rack the '
+             + 'reserved Q30 / Q31 pair belongs to.',
+      action: 'Confirm the rack position the reserved pair serves and make the two drawings use the same name.'
+    }
+  ]
 };
 
 /* Feed side of each PDU - used for grouping and colour. */

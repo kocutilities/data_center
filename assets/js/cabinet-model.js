@@ -88,7 +88,9 @@ var DC_CABINETS = (function () {
             DC_CONFIG.pduCircuits[pdu].forEach(function (c) {
                 if (isSpare(c.rack)) return;
                 var cab = byName[c.rack] || (byName[c.rack] = { name: c.rack, A: [], B: [] });
-                cab[feed].push({ pdu: pdu, q: c.c, ph: c.ph, plate: plateOf(c.breaker),
+                /* pairQ: a way moved off the standard pairing (supplyChanges)
+                   names the partner's way number, so the pair stays exact */
+                cab[feed].push({ pdu: pdu, q: c.c, pq: c.pairQ || c.c, ph: c.ph, plate: plateOf(c.breaker),
                                  key: 'PDU|' + pdu + '|' + c.c });
             });
         });
@@ -101,10 +103,10 @@ var DC_CABINETS = (function () {
             (c.A.length && c.B.length ? dual : single).push(c);
         });
 
-        /* matched = identical way number and phase on both sides */
+        /* matched = the same way number (or the pairQ a supply change gives) and phase on both sides */
         dual.forEach(function (c) {
             var sig = function (ways) {
-                return ways.map(function (w) { return w.q + w.ph; }).sort().join(',');
+                return ways.map(function (w) { return w.pq + w.ph; }).sort().join(',');
             };
             c.matched = sig(c.A) === sig(c.B);
 
@@ -114,8 +116,8 @@ var DC_CABINETS = (function () {
             c.mismatch = [];
             c.A.forEach(function (a) {
                 c.B.forEach(function (b) {
-                    if (a.q === b.q && a.plate !== b.plate) {
-                        c.mismatch.push({ q: a.q, plateA: a.plate, plateB: b.plate });
+                    if (a.pq === b.pq && a.plate !== b.plate) {
+                        c.mismatch.push({ q: a.q === b.q ? a.q : a.q + '/' + b.q, plateA: a.plate, plateB: b.plate });
                     }
                 });
             });
@@ -147,7 +149,7 @@ var DC_CABINETS = (function () {
             phasesOf(w.ph).forEach(function (p) {
                 var I = rec ? num(rec[p.toLowerCase()]) : null;
                 if (I === null) { if (unread.indexOf(w) === -1) unread.push(w); }
-                out.push({ way: w, phase: p, pair: w.q + '|' + p, plate: w.plate,
+                out.push({ way: w, phase: p, pair: (w.pq || w.q) + '|' + p, plate: w.plate,
                            cont: w.plate === null ? null : w.plate * CONT, I: I });
             });
         });

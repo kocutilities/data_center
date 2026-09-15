@@ -86,7 +86,7 @@ var AUDIT_SHEET = 'Audit';
    check_deploy.js compares it with the file on disk: if they match, the
    file on disk is exactly what is running. Do not edit by hand - the tests
    fail if it is not the hash of the file around it. */
-var CODE_FINGERPRINT = '272b69d54a17';
+var CODE_FINGERPRINT = '3472ad10a9a5';
 
 /* What a request may contain. Generous enough never to refuse a real round -
    a full round is about 300 rows, the largest device is a 2133 A incomer and
@@ -178,7 +178,7 @@ var ALLOWED = {
   "PDU|PDU 1|Q43": ["Cabin K-05",25],
   "PDU|PDU 1|Q44": ["Cabin K-06",25],
   "PDU|PDU 1|Q45": ["Cabin K-06",25],
-  "PDU|PDU 1|Q46": ["SPARE IND. SOCKET",25],
+  "PDU|PDU 1|Q46": ["Cabin A12",25],
   "PDU|PDU 1|Q47": ["SPARE IND. SOCKET",25],
   "PDU|PDU 1|Q48": ["SPARE IND. SOCKET",25],
   "PDU|PDU 1|Q49": ["SPARE IND. SOCKET",25],
@@ -208,7 +208,7 @@ var ALLOWED = {
   "PDU|PDU 1|Q73": ["A Building Room A14 floor socket",16],
   "PDU|PDU 1|Q74": ["Cabin A11",25],
   "PDU|PDU 1|Q75": ["RMS",16],
-  "PDU|PDU 1|Q76": ["Cabin A12",25],
+  "PDU|PDU 1|Q76": ["Cabin A12 SPARE",25],
   "PDU|PDU 1|Q77": ["Cabin A13",16],
   "PDU|PDU 1|Q78": ["SPARE",16],
   "PDU|PDU 3|Q1": ["SPARE Cabin C-03",25],

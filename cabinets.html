@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Cabinets">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=292d9030">
-<script src="assets/js/auth.js?v=292d9030"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=11d42e48">
+<script src="assets/js/auth.js?v=11d42e48"></script>
 <script>KOCAuth.require();</script>
 <style>
 /* Four states plus two for missing data. Critical needs a colour of its own
@@ -126,6 +126,8 @@ html[data-theme="light"] .st-high { --c: #b45309; }
 .flag { display: inline-block; margin-top: 4px; margin-right: 4px; padding: 1px 6px; border-radius: 5px;
         font-size: 10.4px; font-weight: 600; background: var(--surface-3); color: var(--text-dim); }
 .flag.warn { background: var(--warn-soft); color: var(--warn); }
+a.flag { text-decoration: none; }
+a.flag:hover { text-decoration: underline; }
 
 .num { font-variant-numeric: tabular-nums; }
 .big { font-size: 14px; font-weight: 640; }
@@ -336,6 +338,10 @@ html[data-theme="light"] .st-high { --c: #b45309; }
                     <svg class="i" viewBox="0 0 24 24"><path d="M4 4v6h16V4M4 14v6h16v-6M12 10v4"/></svg>
                     Single Line Diagram
                 </a>
+                <a href="supply-changes.html">
+                    <svg class="i" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+                    Supply Changes
+                </a>
             </nav>
         </div>
 
@@ -478,11 +484,11 @@ html[data-theme="light"] .st-high { --c: #b45309; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=292d9030"></script>
-<script src="assets/js/koc-criteria.js?v=292d9030"></script>
-<script src="assets/js/system-model.js?v=292d9030"></script>
-<script src="assets/js/cabinet-model.js?v=292d9030"></script>
-<script src="assets/js/cabinets.js?v=292d9030"></script>
-<script src="assets/js/auth-ui.js?v=292d9030"></script>
+<script src="assets/js/config.js?v=11d42e48"></script>
+<script src="assets/js/koc-criteria.js?v=11d42e48"></script>
+<script src="assets/js/system-model.js?v=11d42e48"></script>
+<script src="assets/js/cabinet-model.js?v=11d42e48"></script>
+<script src="assets/js/cabinets.js?v=11d42e48"></script>
+<script src="assets/js/auth-ui.js?v=11d42e48"></script>
 </body>
 </html>

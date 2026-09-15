@@ -265,6 +265,27 @@ section('A whole EMSB lost - the other UPS chain carries the room');
     check('unread cabinet stays unread in either case', M.stateOnFeedLoss(M.analyse(c, {}), 'A'), 'unread');
 }
 
+/* ======================================================== a supply change: A-12 on PDU-1 Q46 */
+section('Supply change - A-12 moved to PDU-1 Q46 on 2026-03-01, paired with PDU-6 Q76');
+{
+    const { cabinets } = M.build();
+    const a12 = cabinets.find(c => c.name === 'Cabin A12');
+    check('A-12 Feed A is PDU 1 Q46 (PDU-01 SLD 15-09-26)', a12.A.map(w => w.pdu + ' ' + w.q), ['PDU 1 Q46']);
+    check('A-12 Feed B is still PDU 6 Q76', a12.B.map(w => w.pdu + ' ' + w.q), ['PDU 6 Q76']);
+    check('PDU 1 Q76 is held as Cabin A12 SPARE, not in service',
+          CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q76').rack, 'Cabin A12 SPARE');
+    check('the moved way names its partner, so A-12 still pairs exactly', a12.matched, true);
+    check('  ... same 25 A and same R phase on both, so no unequal pair', a12.mismatch, []);
+    const x = M.analyse(a12, Object.assign(rd('PDU 1', 'Q46', { r: 6 }), rd('PDU 6', 'Q76', { r: 5.5 })));
+    check('failover is exact through Q46 / Q76: 6 + 5.5 = 11.5 A on the survivor',
+          [r1(x.loseA.worst.I), x.loseA.worst.ch.way.q, x.approximate], [11.5, 'Q76', false]);
+    check('the register holds A-12 as an active temporary change',
+          CFG.supplyChanges.filter(e => e.kind === 'temporary' && e.status === 'active').map(e => e.cabinet), ['Cabin A12']);
+    check('every register way is a real PDU way',
+          CFG.supplyChanges.flatMap(e => (e.original || []).concat(e.temporary || []).map(t => t.way).concat(e.ways || []))
+             .filter(k => { const [p, q] = k.split('|'); return !(CFG.pduCircuits[p] || []).some(w => w.c === q); }), []);
+}
+
 /* ======================================================== over the plate is not a trip */
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {
@@ -322,8 +343,9 @@ section('Against the sheet, 2026-08-16');
         check('every cabinet gets exactly one state', all.every(a => a.state), true);
         check('the unread is H-04, missed on both feeds',
               all.filter(a => a.state === 'unread').map(a => a.cab.name).sort(), ['Cabin H-04']);
-        check('the incomplete is D-03, missed on one feed',
-              all.filter(a => a.state === 'incomplete').map(a => a.cab.name), ['Cabin D-03']);
+        /* A-12 joined on 2026-09-15: its Feed A is PDU-1 Q46, which has no reading */
+        check('the incomplete are A-12 (PDU-1 Q46 never read) and D-03, missed on one feed',
+              all.filter(a => a.state === 'incomplete').map(a => a.cab.name).sort(), ['Cabin A12', 'Cabin D-03']);
 
         /* single-phase readings must be in their own phase column, or the
            model would read the way as blank */
@@ -347,9 +369,9 @@ section('Against the sheet, 2026-08-16');
         check('  ... UPS-2 at 55.1 %, ESMSB-2 at 76.1 %',
               [r1(e1.chain[3].pct), r1(e1.chain[4].pct)], [55.1, 76.1]);
         check('  ... PDU 6 incomer 127.6 A, High Load', [r1(e1.pdus[0].peak), e1.pdus[0].state], [127.6, 'high']);
-        check('  ... cabinets 109 / 5 / 1 / 0, 2 not read',
+        check('  ... cabinets 109 / 4 / 1 / 0, 3 not read (A-12 now has an unread feed)',
               [e1.cabinets.normal, e1.cabinets.high, e1.cabinets.critical, e1.cabinets.overload, e1.cabinets.missing],
-              [109, 5, 1, 0, 2]);
+              [109, 4, 1, 0, 3]);
         check('EMSB-2 lost: G-10 trips -> Overload', [e2.state, e2.cabinets.worst[0].res.cab.name], ['overload', 'Cabin G-10']);
         check('  ... transformer B 690 A, 32.3 %', [e2.chain[0].peak, r1(e2.chain[0].pct)], [690, 32.3]);
         [e1, e2].forEach(e => {

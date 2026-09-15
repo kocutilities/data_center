@@ -887,6 +887,18 @@
                 }).join('; ') + ' — the smaller one limits redundancy';
                 nm.appendChild(mm);
             }
+            /* a cabinet in the supply changes register links to its entry */
+            var sc = (DC_CONFIG.supplyChanges || []).filter(function (e) {
+                return e.kind !== 'drawing' && (e.cabinet === r.cab.name || e.also === r.cab.name);
+            })[0];
+            if (sc) {
+                var scl = el('a', 'flag warn', sc.kind === 'temporary' ? 'temporary supply' : 'supply under review');
+                scl.href = 'supply-changes.html#' + sc.id;
+                scl.title = sc.kind === 'temporary'
+                    ? 'Temporary since ' + sc.date + ': ' + sc.reason
+                    : sc.title + ' — see the Supply Changes page';
+                nm.appendChild(scl);
+            }
             if (r.approximate) {
                 var ap = el('span', 'flag', 'approximate');
                 ap.title = 'The two feeds have different ways on different phases, so the failover is ' +

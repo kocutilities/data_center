@@ -629,7 +629,7 @@
     }
     function servesText(w) {
         if (!w.spare) return w.rack;
-        var rest = String(w.rack).replace(/^SPARE\s*/i, '');
+        var rest = String(w.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();
         return rest ? 'Spare (' + rest + ')' : 'Spare';
     }
     function upsOf(feed) { return feed === 'A' ? 'UPS-1' : 'UPS-2'; }
@@ -684,7 +684,11 @@
        when both serve the same cabinet, or both are spare. */
     function partnerOf(w) {
         var otherPdu = PAIR[w.pdu];
-        var o = wayOf(otherPdu, w.q);
+        /* normally the same way number; a way moved by a supply change names
+           its partner (pairQ), and the partner is found from either end */
+        var mine = ((DC_CONFIG.pduCircuits || {})[w.pdu] || []).filter(function (x) { return x.c === w.q; })[0];
+        var back = ((DC_CONFIG.pduCircuits || {})[otherPdu] || []).filter(function (x) { return x.pairQ === w.q; })[0];
+        var o = wayOf(otherPdu, mine && mine.pairQ ? mine.pairQ : back ? back.c : w.q);
         if (!o) return { way: null, why: otherPdu + ' has no way ' + w.q };
         if (o.ph !== w.ph) return { way: null, other: o, why: otherPdu + ' ' + w.q + ' is on a different phase' };
         if (w.spare && o.spare) return { way: o, kind: 'spare' };
