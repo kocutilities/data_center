@@ -56,9 +56,9 @@ section('Cabinets built from config');
     check('117 dual-fed cabinets', cabinets.length, 117);
     check('8 single-fed loads kept apart', singleFed.length, 8);
     check('no single-fed load is a cabinet', singleFed.filter(s => /cabin|^L-|^M-/i.test(s.name)).map(s => s.name), []);
-    check('114 pair exactly', cabinets.filter(c => c.matched).length, 114);
-    check('the three that do not', cabinets.filter(c => !c.matched).map(c => c.name).sort(),
-          ['Cabin A-14', 'Cabin G-01', 'Cabin G-02']);
+    check('115 pair exactly', cabinets.filter(c => c.matched).length, 115);
+    check('the two that do not', cabinets.filter(c => !c.matched).map(c => c.name).sort(),
+          ['Cabin G-01', 'Cabin G-02']);
     /* the pairing key is way|phase; that only works if each side sits on one PDU */
     check('each side of every cabinet is on a single PDU',
           cabinets.filter(c => new Set(c.A.map(w => w.pdu)).size > 1 || new Set(c.B.map(w => w.pdu)).size > 1)
@@ -140,11 +140,10 @@ section('Several ways a side, each paired with its own');
 }
 
 /* ======================================================== the three odd ones */
-section('Unmatched cabinets - A-14 has one A way and two B ways');
+section('Unmatched cabinets - one A way and two B ways (the shape A-14 was misread as)');
 {
-    const { cabinets } = M.build();
-    const a14 = cabinets.find(c => c.name === 'Cabin A-14');
-    const x = M.analyse(a14, Object.assign(
+    const odd = cab([['Q27', 'B', 32]], [['Q26', 'Y', 32], ['Q27', 'B', 32]], 'Odd');
+    const x = M.analyse(odd, Object.assign(
         rd('PDU 1', 'Q27', { b: 6 }),
         rd('PDU 6', 'Q26', { y: 2 }), rd('PDU 6', 'Q27', { b: 4 })));
     check('marked approximate', x.approximate, true);
@@ -301,8 +300,21 @@ section('PDU drawings 17-09-26 - PDU-2, 4, 5, 7, 8 relabelled, no way changed');
           ['Q77', 'Q78'].map(q => CFG.pduCircuits['PDU 2'].find(w => w.c === q).rack), ['SPARE Cabin B-06', 'SPARE Cabin B-04']);
     const sr4 = CFG.supplyChanges.find(e => e.id === 'SR-004');
     check('SR-004 (H-04 / H-05 naming) is resolved, with its date', [sr4.status, sr4.resolved.date], ['resolved', '2026-09-19']);
-    check('open register entries: SC-001, SR-001, SR-002, SR-003',
-          CFG.supplyChanges.filter(e => e.status !== 'resolved').map(e => e.id), ['SC-001', 'SR-001', 'SR-002', 'SR-003']);
+    check('open register entries: SC-001, SR-002, SR-003',
+          CFG.supplyChanges.filter(e => e.status !== 'resolved').map(e => e.id), ['SC-001', 'SR-002', 'SR-003']);
+}
+
+section('PDU-6 Q26 is SPARE CABIN A-14, as drawn - misread as live until 19-09-2026');
+{
+    const { cabinets } = M.build();
+    const a14 = cabinets.find(c => c.name === 'Cabin A-14');
+    check('Q26 is a spare-cabin way on both PDUs',
+          ['PDU 1', 'PDU 6'].map(p => CFG.pduCircuits[p].find(w => w.c === 'Q26').rack), ['SPARE Cabin A-14', 'SPARE Cabin A-14']);
+    check('A-14 is PDU 1 Q27 / PDU 6 Q27 and pairs exactly',
+          [a14.A.map(w => w.pdu + ' ' + w.q), a14.B.map(w => w.pdu + ' ' + w.q), a14.matched], [['PDU 1 Q27'], ['PDU 6 Q27'], true]);
+    const x = M.analyse(a14, Object.assign(rd('PDU 1', 'Q27', { b: 5.5 }), rd('PDU 6', 'Q27', { b: 5.5 })));
+    check('  ... so its failover is exact: 5.5 + 5.5 = 11 A', [r1(x.loseA.worst.I), x.approximate], [11, false]);
+    check('SR-001 is resolved', CFG.supplyChanges.find(e => e.id === 'SR-001').status, 'resolved');
 }
 
 /* ======================================================== over the plate is not a trip */

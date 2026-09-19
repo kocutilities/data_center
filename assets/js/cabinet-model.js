@@ -36,10 +36,10 @@
    (the layout marks each rack "P1 Q74 / P6 Q74"), and the same number
    is on the same phase on both. So for a cabinet whose two sides match,
    the surviving breaker carries exactly its own current plus its
-   partner's. 114 of the 117 cabinets match.
+   partner's. 115 of the 117 cabinets match.
 
-   Three do not - A-14, G-01 and G-02 have different ways, and phases,
-   on each side. There, matching ways are paired as above and the
+   Two do not - G-01 and G-02 have different ways, and phases, on
+   each side (SR-002). There, matching ways are paired as above and the
    current on a way with no partner is spread over the surviving ways in
    proportion to what they already carry (each server's other supply is
    already on one of them). Those rows are marked approximate.

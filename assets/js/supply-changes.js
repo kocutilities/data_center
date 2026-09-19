@@ -320,9 +320,17 @@
             'the others are the entries on this page.</li>' +
             '<li><b>The latest readings</b> for every way named here, shown on each entry.</li></ul>' +
 
+            '<h3>Spare and spare cabin</h3>' +
+            '<ul><li><b>SPARE</b> — nothing is connected to the RCBO’s outgoing terminals: no cable.</li>' +
+            '<li><b>SPARE CABIN x</b> — a spare cabin: the outgoing cable is connected, and a spare industrial ' +
+            'socket is installed under cabinet x, with nothing plugged in. PDU-1 Q26 and PDU-6 Q26 are spare-cabin ' +
+            'ways for A-14. (As advised by Jais, 19-09-2026.)</li>' +
+            '<li>The server room layout marks both kinds SPARE beside the outlet, so a SPARE mark on the layout is ' +
+            'consistent with either label on a PDU drawing.</li></ul>' +
+
             '<h3>Checked and consistent — not entries</h3>' +
             '<ul><li><b>Reserved pairs named for a cabinet</b>, drawn SPARE on the layout and on both PDUs: A-01 (withdrawn ' +
-            '12-09-2026), A05 Q51, C-03, C-07 Q11, E-12 Q42, F-01 Q8, G-10 Q48, H-03 Q28, H-08 Q33, H-11 Q50, H-12 Q64, ' +
+            '12-09-2026), A-14 Q26, A05 Q51, C-03, C-07 Q11, E-12 Q42, F-01 Q8, G-10 Q48, H-03 Q28, H-08 Q33, H-11 Q50, H-12 Q64, ' +
             'I-05, I-06 and M-12 Q14. Planned spare capacity, not changes.</li>' +
             '<li><b>B-04 and B-06</b> each hold a spare PDU-2 outlet (Q78, Q77) — named SPARE CABIN B-04 / B-06 on ' +
             'the PDU-2 schedule since 17-09-26.</li>' +

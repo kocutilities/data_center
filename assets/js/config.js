@@ -435,7 +435,7 @@ const DC_CONFIG = {
         { c: 'Q23', rack: 'Cabin B-09', breaker: '25A', ph: 'Y' },
         { c: 'Q24', rack: 'Cabin B-05', breaker: '32A', ph: 'B' },
         { c: 'Q25', rack: 'Cabin B-05', breaker: '32A', ph: 'R' },
-        { c: 'Q26', rack: 'Cabin A-14', breaker: '32A', ph: 'Y' },
+        { c: 'Q26', rack: 'SPARE Cabin A-14', breaker: '32A', ph: 'Y' },
         { c: 'Q27', rack: 'Cabin A-14', breaker: '32A', ph: 'B' },
         { c: 'Q28', rack: 'SPARE', breaker: '32A', ph: 'R' },
         { c: 'Q29', rack: 'SPARE', breaker: '32A', ph: 'Y' },
@@ -756,19 +756,25 @@ const DC_CONFIG = {
       ]
     },
     {
-      id: 'SR-001', kind: 'review', status: 'for-review',
+      id: 'SR-001', kind: 'review', status: 'resolved',
       cabinet: 'Cabin A-14', label: 'A-14',
       title: 'The drawings disagree about PDU-6 Q26',
       category: 'Drawings disagree',
-      schedules: 'PDU-1 Q27 (32 A, B) for A-14, and Q26 drawn SPARE CABIN A-14. PDU-6 Q26 (32 A, Y) and Q27 (32 A, B) '
-               + 'both for A-14 \u2014 one way on Feed A, two on Feed B (PDU-6 SLD 10-09-26).',
+      schedules: 'Both PDUs draw Q26 (32 A, Y) SPARE CABIN A-14 and Q27 (32 A, B) CABIN A-14 (PDU-1 SLD 15-09-26, '
+               + 'PDU-6 SLD 10-09-26). Until 19-09-2026 the app had PDU-6 Q26 as a live Cabin A-14 \u2014 a '
+               + 'transcription error, which is what raised this entry.',
       layout: 'A-14\u2019s box uses Q27 P1 and Q27 P6; Q26 P1 and Q26 P6 are both marked SPARE (layout 15-09-2026).',
       ways: ['PDU 1|Q27', 'PDU 6|Q27', 'PDU 6|Q26', 'PDU 1|Q26'],
-      finding: 'The layout and the readings agree: A-14 runs on the standard pair Q27 / Q27, and PDU-6 Q26 read '
-             + '0 A on 16-08-2026. The PDU-6 schedule still shows Q26 in use \u2014 most likely the Q26 pair was '
-             + 'withdrawn and only the PDU-1 drawing was updated.',
+      finding: 'All three agree: A-14 runs on the standard pair Q27 / Q27, Q26 is a spare cabin way on both PDUs, '
+             + 'and PDU-6 Q26 read 0 A on 16-08-2026. (As first raised, this said the PDU-6 schedule showed Q26 in '
+             + 'use \u2014 that was the misread.)',
       action: 'Confirm on site that nothing is connected to PDU-6 Q26. If so, redraw it as SPARE CABIN A-14 on the '
-            + 'PDU-6 SLD; the app then pairs A-14 exactly instead of approximately.'
+            + 'PDU-6 SLD; the app then pairs A-14 exactly instead of approximately.',
+      resolved: { date: '2026-09-19',
+        text: 'No disagreement: the PDU-6 SLD already reads SPARE CABIN A-14 at Q26, the same as PDU-1. The app had '
+            + 'misread it as live and is corrected. A spare-cabin way has its cable connected and a spare industrial '
+            + 'socket under the cabin, with nothing plugged in (Jais, 19-09-2026), which fits the 0 A reading. A-14 '
+            + 'runs on the standard pair Q27 / Q27 and now pairs exactly.' }
     },
     {
       id: 'SR-002', kind: 'review', status: 'for-review',

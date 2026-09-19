@@ -627,10 +627,33 @@
     function polesText(w) {
         return w.ph === '3' ? 'four-pole RCBO, three phase' : 'two-pole RCBO, ' + w.ph + ' phase and neutral';
     }
+    /* Three kinds of spare, as the drawings use them (Jais, 19-09-2026):
+         SPARE             nothing on the RCBO's outgoing terminals - no cable
+         SPARE Cabin X     spare cabin: cable connected, and a spare industrial
+                           socket installed under cabinet X, nothing plugged in
+         SPARE IND. SOCKET a spare industrial socket, not for a named cabinet */
+    function spareKind(w) {
+        if (!w.spare) return null;
+        if (/cabin/i.test(w.rack)) return 'cabin';
+        if (/socket/i.test(w.rack)) return 'socket';
+        return 'none';
+    }
+    function spareCabin(w) {
+        return String(w.rack).replace(/SPARE/ig, '').replace(/cabin/ig, '').replace(/\s+/g, ' ').trim();
+    }
     function servesText(w) {
-        if (!w.spare) return w.rack;
-        var rest = String(w.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();
-        return rest ? 'Spare (' + rest + ')' : 'Spare';
+        var k = spareKind(w);
+        if (!k) return w.rack;
+        if (k === 'cabin') return 'Spare cabin ' + spareCabin(w);
+        if (k === 'socket') return 'Spare industrial socket';
+        return 'Spare \u2014 no cable';
+    }
+    function spareWords(w) {
+        var k = spareKind(w);
+        if (k === 'cabin') return 'a spare cabin way: its cable is connected to a spare industrial socket under '
+            + 'Cabin ' + spareCabin(w) + ', with nothing plugged in';
+        if (k === 'socket') return 'a spare industrial socket, cabled, with nothing plugged in';
+        return 'spare, with no outgoing cable \u2014 a cable must be run before anything can use it';
     }
     function upsOf(feed) { return feed === 'A' ? 'UPS-1' : 'UPS-2'; }
 
@@ -1569,11 +1592,12 @@
         var w = wayOf(p.point, p.way), pr = partnerOf(w);
         n.textContent = w.pdu + ' ' + w.q + ' is a ' + w.plate + ' A ' + polesText(w) + ' on Feed ' + w.feed
             + ' (' + upsOf(w.feed) + '), '
-            + (w.spare ? 'currently spare' + (servesText(w) === 'Spare' ? '' : ' ' + servesText(w).replace(/^Spare\s*/, ''))
-                       : 'serving ' + w.rack) + '. '
+            + (w.spare ? spareWords(w) : 'serving ' + w.rack) + '. '
             + (pr.way
                 ? 'Its partner for a second cord is ' + pr.way.pdu + ' ' + pr.way.q + ', ' + pr.way.plate + ' A'
-                  + (pr.kind === 'spare' ? ', also spare.' : ', on the same cabinet.')
+                  + (pr.kind === 'spare' ? ', also ' + (spareKind(pr.way) === 'cabin' ? 'a spare cabin way for Cabin ' + spareCabin(pr.way)
+                                                                          : servesText(pr.way).toLowerCase()) + '.'
+                                         : ', on the same cabinet.')
                 : 'It has no free partner on ' + PAIR[w.pdu] + ': ' + pr.why + '.');
     }
 
