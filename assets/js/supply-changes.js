@@ -120,11 +120,12 @@
         var host = $('tiles');
         host.innerHTML = '';
         var temp = REG.filter(function (e) { return e.kind === 'temporary' && e.status === 'active'; });
-        var review = REG.filter(function (e) { return e.kind === 'review'; });
-        var drawing = REG.filter(function (e) { return e.kind === 'drawing'; });
+        var open = REG.filter(function (e) { return e.status !== 'resolved'; });
+        var review = open.filter(function (e) { return e.kind === 'review'; });
+        var drawing = open.filter(function (e) { return e.kind === 'drawing'; });
         var cabs = M.build().cabinets.length;
         var named = {};
-        REG.forEach(function (e) { named[e.cabinet] = 1; if (e.also) named[e.also] = 1; });
+        open.forEach(function (e) { named[e.cabinet] = 1; if (e.also) named[e.also] = 1; });
         [['Temporary changes', temp.length, 'active on site', 't-temp'],
          ['For review', review.length, 'non-standard supply found', 't-review'],
          ['Drawing issues', drawing.length, 'supply standard, drawing wrong', 't-draw'],
@@ -257,13 +258,15 @@
         if (!list.length) { host.appendChild(el('p', 'muted', 'Nothing found.')); return; }
 
         list.forEach(function (e) {
-            var card = el('article', 'change ' + e.kind);
+            var done = e.status === 'resolved';
+            var card = el('article', 'change ' + e.kind + (done ? ' resolved' : ''));
             card.id = e.id;
             var head = el('div', 'ch-head');
             head.appendChild(el('span', 'ch-cab', 'Cabinet ' + e.label));
-            head.appendChild(el('span', 'pill ' + e.kind, e.category));
+            head.appendChild(el('span', 'pill ' + (done ? 'done' : e.kind), done ? 'Resolved' : e.category));
             head.appendChild(el('span', 'ch-id', e.id));
-            head.appendChild(el('span', 'ch-since', e.status === 'for-review' ? 'open — for review' : e.status));
+            head.appendChild(el('span', 'ch-since', done ? 'resolved ' + dmy(e.resolved.date)
+                                                  : e.status === 'for-review' ? 'open — for review' : e.status));
             card.appendChild(head);
             card.appendChild(el('div', 'ch-title', e.title));
 
@@ -275,7 +278,8 @@
             (e.ways || []).forEach(function (k) { chips.appendChild(readingChip(k)); });
             add('Readings' + (shownDate ? ', ' + dmy(shownDate) : ''), chips);
             add('Finding', el('div', '', e.finding));
-            add('Suggested action', el('div', '', e.action));
+            if (done) add('Resolved', el('div', 'res', e.resolved.text));
+            else add('Suggested action', el('div', '', e.action));
             card.appendChild(g);
             host.appendChild(card);
         });
@@ -284,7 +288,7 @@
     function renderMethod() {
         var cabs = M.build().cabinets.length;
         var named = {};
-        REG.forEach(function (e) { named[e.cabinet] = 1; if (e.also) named[e.also] = 1; });
+        REG.forEach(function (e) { if (e.status !== 'resolved') { named[e.cabinet] = 1; if (e.also) named[e.also] = 1; } });
         $('method').innerHTML =
             '<h3>The standard</h3>' +
             '<ul><li>Every cabinet takes one supply from an odd PDU (Feed A) and one from the even PDU it pairs with ' +
@@ -298,7 +302,18 @@
             '<ul><li><b>PDU-01 single line diagram, 15-09-26, against the 10-09-26 issue</b>, row by row for all 78 ways: ' +
             'Q46 and Q76 changed for A-12; Q19 was relettered (already spare); the title block changed. Nothing else.</li>' +
             '<li><b>Server room layout, 15-09-2026, against the 10-09-2026 issue</b> (now in 99-Archive), aligned and ' +
-            'compared pixel by pixel: A-12’s box and the drawn-by name changed. Nothing else.</li>' +
+            'compared pixel by pixel: A-12’s box and the drawn-by name changed. Nothing else.</li></ul>' +
+
+            '<h3>What was compared, 19-09-2026</h3>' +
+            '<ul><li><b>PDU-2, PDU-4, PDU-5, PDU-7 and PDU-8 single line diagrams, 17-09-26, against the 10-09-26 ' +
+            'issues</b>, overlaid and compared for every way. Labels only — no rating, phase or way changed:' +
+            '<ul><li>PDU-2 Q77 and Q78 are named SPARE CABIN B-06 and SPARE CABIN B-04, the cabinets that hold ' +
+            'their spare outlets on the layout.</li>' +
+            '<li>PDU-4 and PDU-5 Q30 and Q31 are renamed SPARE CABIN H-04 (were H-05), which resolves SR-004.</li>' +
+            '<li>PDU-7 and PDU-8 letter the L row CABIN L-01 … L-19 (were L-01 … L-19).</li></ul></li>' +
+            '<li><b>PDU-1 and the server room layout</b> in the same update are byte-identical to the 15-09 issues ' +
+            'already in use. A-06’s lettering (SR-003) is therefore unchanged, and PDU-3 and PDU-6, not re-issued, ' +
+            'leave SR-001 open.</li>' +
             '<li><b>Every cabinet’s marks on the layout against the PDU schedules.</b> The layout draws a brown ' +
             'SPARE beside an outlet that is not in use, and that was taken into account. Of ' + cabs + ' dual-fed ' +
             'cabinets, <b>' + (cabs - Object.keys(named).length) + ' use the standard pairing and match the layout exactly</b>; ' +
@@ -309,7 +324,8 @@
             '<ul><li><b>Reserved pairs named for a cabinet</b>, drawn SPARE on the layout and on both PDUs: A-01 (withdrawn ' +
             '12-09-2026), A05 Q51, C-03, C-07 Q11, E-12 Q42, F-01 Q8, G-10 Q48, H-03 Q28, H-08 Q33, H-11 Q50, H-12 Q64, ' +
             'I-05, I-06 and M-12 Q14. Planned spare capacity, not changes.</li>' +
-            '<li><b>B-04 and B-06</b> each hold a spare PDU-2 outlet (Q78, Q77) — spare on the PDU-2 schedule too.</li>' +
+            '<li><b>B-04 and B-06</b> each hold a spare PDU-2 outlet (Q78, Q77) — named SPARE CABIN B-04 / B-06 on ' +
+            'the PDU-2 schedule since 17-09-26.</li>' +
             '<li><b>Building sockets and the RMS on PDU-1 Q63–Q75</b> are single-fed by design and are not cabinets.</li></ul>' +
 
             '<h3>Adding an entry</h3>' +

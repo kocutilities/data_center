@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Supply Changes">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=9efa4bbd">
-<script src="assets/js/auth.js?v=9efa4bbd"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=0d7e98fc">
+<script src="assets/js/auth.js?v=0d7e98fc"></script>
 <script>KOCAuth.require();</script>
 <style>
 .wrap { max-width: 1280px; }
@@ -41,6 +41,10 @@ html[data-theme="light"] .pill.review { color: #c2410c; }
           border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; scroll-margin-top: 16px; }
 .change.review { border-left-color: #fb923c; }
 .change.drawing { border-left-color: var(--accent); }
+.change.resolved { border-left-color: var(--good); }
+.change.resolved .ch-title, .change.resolved .rgrid { opacity: .78; }
+.pill.done   { color: var(--good); background: var(--good-soft); border-color: rgba(52,211,153,.35); }
+.rgrid .res  { color: var(--good); font-weight: 560; }
 .ch-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ch-cab { font-size: 18px; font-weight: 680; }
 .ch-id { font: 600 11.5px/1 ui-monospace, Consolas, monospace; color: var(--text-faint);
@@ -230,10 +234,10 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=9efa4bbd"></script>
-<script src="assets/js/koc-criteria.js?v=9efa4bbd"></script>
-<script src="assets/js/cabinet-model.js?v=9efa4bbd"></script>
-<script src="assets/js/supply-changes.js?v=9efa4bbd"></script>
-<script src="assets/js/auth-ui.js?v=9efa4bbd"></script>
+<script src="assets/js/config.js?v=0d7e98fc"></script>
+<script src="assets/js/koc-criteria.js?v=0d7e98fc"></script>
+<script src="assets/js/cabinet-model.js?v=0d7e98fc"></script>
+<script src="assets/js/supply-changes.js?v=0d7e98fc"></script>
+<script src="assets/js/auth-ui.js?v=0d7e98fc"></script>
 </body>
 </html>

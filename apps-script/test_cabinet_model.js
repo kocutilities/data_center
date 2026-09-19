@@ -286,6 +286,25 @@ section('Supply change - A-12 moved to PDU-1 Q46 on 2026-03-01, paired with PDU-
              .filter(k => { const [p, q] = k.split('|'); return !(CFG.pduCircuits[p] || []).some(w => w.c === q); }), []);
 }
 
+section('PDU drawings 17-09-26 - PDU-2, 4, 5, 7, 8 relabelled, no way changed');
+{
+    const { cabinets, singleFed } = M.build();
+    const L = cabinets.filter(c => c.row === 'L');
+    check('the L row is lettered Cabin L-01 ... L-19 on PDU-7 and PDU-8, all 19 still paired',
+          [L.length, L.every(c => /^Cabin L-\d\d$/.test(c.name) && c.matched)], [19, true]);
+    check('no bare "L-nn" name left to split a cabinet in two',
+          cabinets.concat(singleFed).filter(c => /^L-/.test(c.name)).map(c => c.name), []);
+    check('PDU-4 and PDU-5 Q30 / Q31 are SPARE Cabin H-04',
+          ['PDU 4', 'PDU 5'].flatMap(p => ['Q30', 'Q31'].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack)),
+          Array(4).fill('SPARE Cabin H-04'));
+    check('PDU-2 Q77 / Q78 are SPARE Cabin B-06 / B-04',
+          ['Q77', 'Q78'].map(q => CFG.pduCircuits['PDU 2'].find(w => w.c === q).rack), ['SPARE Cabin B-06', 'SPARE Cabin B-04']);
+    const sr4 = CFG.supplyChanges.find(e => e.id === 'SR-004');
+    check('SR-004 (H-04 / H-05 naming) is resolved, with its date', [sr4.status, sr4.resolved.date], ['resolved', '2026-09-19']);
+    check('open register entries: SC-001, SR-001, SR-002, SR-003',
+          CFG.supplyChanges.filter(e => e.status !== 'resolved').map(e => e.id), ['SC-001', 'SR-001', 'SR-002', 'SR-003']);
+}
+
 /* ======================================================== over the plate is not a trip */
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {

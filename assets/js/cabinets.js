@@ -1043,7 +1043,7 @@
             '<li><b>Uneven sharing</b> is advisory, not a KOC criterion: one feed carrying over 80 % of a cabinet ' +
             'is unusual for dual-corded supplies and worth a look.</li></ul>' +
 
-            '<p class="dim">Breaker sizes and pairing from the PDU single line diagrams, revision 10-09-2026. ' +
+            '<p class="dim">Breaker sizes and pairing from the PDU single line diagrams: PDU-1 15-09-26, PDU-2, 4, 5, 7 and 8 17-09-26, PDU-3 and 6 10-09-26. ' +
             'Load in kVA is the sum of the phase currents at 239.6 V a phase (415 V line).</p>';
     }
 
