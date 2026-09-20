@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Load Study">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=1ddb690c">
-<script src="assets/js/auth.js?v=1ddb690c"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=4d33a0af">
+<script src="assets/js/auth.js?v=4d33a0af"></script>
 <script>KOCAuth.require();</script>
 <style>
 .verdict { border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
@@ -152,6 +152,43 @@
     .frow.fhead { display: none; }
     .narow { grid-template-columns: 1fr; gap: 3px; }
 }
+/* ---------- several requests at once ---------- */
+.reqbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.reqtab { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px;
+          border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+          font: inherit; font-size: 12.8px; cursor: pointer; }
+.reqtab:hover { border-color: var(--accent); }
+.reqtab.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.reqtab .n { font-weight: 640; }
+.reqtab .v { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.reqtab .x { color: var(--text-faint); font-size: 14px; line-height: 1; padding: 0 2px; }
+.reqtab .x:hover { color: var(--bad); }
+.reqadd { padding: 7px 12px; border-radius: 10px; border: 1px dashed var(--border); background: none;
+          color: var(--text-dim); font: inherit; font-size: 12.8px; cursor: pointer; }
+.reqadd:hover { border-color: var(--accent); color: var(--text); }
+
+.supply { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+.supply-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.waychip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px;
+           border: 1px solid var(--border); background: var(--surface-2); font-size: 12.2px;
+           font-variant-numeric: tabular-nums; }
+.waychip .x { cursor: pointer; color: var(--text-faint); font-size: 14px; line-height: 1; }
+.waychip .x:hover { color: var(--bad); }
+.chips .muted { color: var(--text-faint); font-size: 12.2px; }
+
+.reqtable { grid-column: 1 / -1; margin-top: 12px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.reqrow { display: grid; grid-template-columns: 1.3fr 1fr 1.4fr .9fr 1.4fr 1fr; gap: 10px;
+          padding: 9px 12px; font-size: 12.4px; font-variant-numeric: tabular-nums;
+          border-top: 1px solid var(--border); }
+.reqrow:first-child { border-top: 0; }
+.reqrow.head { background: var(--surface-2); color: var(--text-faint); font-size: 10.6px;
+               letter-spacing: .08em; text-transform: uppercase; }
+.reqrow .nm { font-weight: 620; }
+@media (max-width: 760px) {
+    .reqrow { grid-template-columns: 1fr 1fr; }
+    .reqrow.head { display: none; }
+}
 </style>
 </head>
 <body>
@@ -257,7 +294,13 @@
                 </div>
                 <div class="field-note" id="status"></div>
 
+                <div class="reqbar" id="reqBar"></div>
+
                 <div class="form-grid" style="margin-top:12px">
+                    <div style="grid-column:1/-1">
+                        <label for="reqName">Request</label>
+                        <input type="text" id="reqName" placeholder="What this request is — e.g. Cabinet C-09 expansion" autocomplete="off">
+                    </div>
                     <div>
                         <label for="size">Size</label>
                         <input type="number" id="size" inputmode="decimal" step="0.1" min="0" value="10">
@@ -316,6 +359,16 @@
                             </div>
                         </div>
                         <div class="field-note" id="wayNote" style="margin-top:6px"></div>
+                        <div class="supply">
+                            <div class="supply-head">
+                                <label style="margin:0">Supply points for this request</label>
+                                <button id="addWay" class="btn-sm" type="button" title="Add the breaker chosen above as another supply point">
+                                    <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                                    <span>Add this breaker as well</span>
+                                </button>
+                            </div>
+                            <div class="chips" id="wayChips"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -387,11 +440,12 @@
     </main>
 </div>
 
-<script src="assets/js/config.js?v=1ddb690c"></script>
-<script src="assets/js/koc-criteria.js?v=1ddb690c"></script>
-<script src="assets/js/system-model.js?v=1ddb690c"></script>
-<script src="assets/js/cabinet-model.js?v=1ddb690c"></script>
-<script src="assets/js/additional-load.js?v=1ddb690c"></script>
-<script src="assets/js/auth-ui.js?v=1ddb690c"></script>
+<script src="assets/js/config.js?v=4d33a0af"></script>
+<script src="assets/js/koc-criteria.js?v=4d33a0af"></script>
+<script src="assets/js/system-model.js?v=4d33a0af"></script>
+<script src="assets/js/cabinet-model.js?v=4d33a0af"></script>
+<script src="assets/js/load-study.js?v=4d33a0af"></script>
+<script src="assets/js/additional-load.js?v=4d33a0af"></script>
+<script src="assets/js/auth-ui.js?v=4d33a0af"></script>
 </body>
 </html>
