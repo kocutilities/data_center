@@ -725,7 +725,7 @@ const DC_CONFIG = {
       date: '2026-03-01',
       reason: 'A power fluctuation on 01-03-2026 tripped the supply to Cabinet A-12 on PDU-1 Q76. '
             + 'As a temporary arrangement, A-12 was reconnected to PDU-1 Q46.',
-      reported: 'Advised by Jais, 2026-09-15',
+      reported: 'Reported 15-09-2026',
       original: [
         { feed: 'A', way: 'PDU 1|Q76', detail: '25 A DP RCBO 30 mA, R phase' },
         { feed: 'B', way: 'PDU 6|Q76', detail: '25 A DP RCBO 30 mA, R phase' }
@@ -773,7 +773,7 @@ const DC_CONFIG = {
       resolved: { date: '2026-09-19',
         text: 'No disagreement: the PDU-6 SLD already reads SPARE CABIN A-14 at Q26, the same as PDU-1. The app had '
             + 'misread it as live and is corrected. A spare-cabin way has its cable connected and a spare industrial '
-            + 'socket under the cabin, with nothing plugged in (Jais, 19-09-2026), which fits the 0 A reading. A-14 '
+            + 'socket under the cabin, with nothing plugged in (reported 19-09-2026), which fits the 0 A reading. A-14 '
             + 'runs on the standard pair Q27 / Q27 and now pairs exactly.' }
     },
     {
@@ -848,7 +848,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin A-08', label: 'A-08', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q8', 'PDU 1|Q9', 'PDU 6|Q8', 'PDU 6|Q9'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN A-08 SPARE, every outlet marked SPARE.'
     },
@@ -856,7 +856,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin A-09', label: 'A-09', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q10', 'PDU 1|Q11', 'PDU 6|Q10', 'PDU 6|Q11'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN A-09 SPARE, every outlet marked SPARE.'
     },
@@ -864,7 +864,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin A-10', label: 'A-10', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q12', 'PDU 1|Q13', 'PDU 6|Q12', 'PDU 6|Q13'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN A-10 SPARE, every outlet marked SPARE.'
     },
@@ -872,7 +872,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin B-03', label: 'B-03', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q16', 'PDU 1|Q17', 'PDU 6|Q16', 'PDU 6|Q17'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN B-03 SPARE, every outlet marked SPARE.'
     },
@@ -880,7 +880,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin B-04', label: 'B-04', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q18', 'PDU 6|Q18'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN B-04 SPARE, every outlet marked SPARE.'
     },
@@ -888,7 +888,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin B-06', label: 'B-06', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q20', 'PDU 6|Q20'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN B-06 SPARE, every outlet marked SPARE.'
     },
@@ -896,7 +896,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin B-07', label: 'B-07', kind: 'out', date: '2026-10-04',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q21', 'PDU 6|Q21'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: every way drawn CABIN B-07 SPARE, every outlet marked SPARE.'
     },
@@ -904,7 +904,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin D-02', label: 'D-02', kind: 'out', date: '2026-10-04',
       pair: 'PDU-3 / PDU-2', zone: 2,
       ways: ['PDU 3|Q18', 'PDU 2|Q18'],
-      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      reported: 'Major updating works at the data center, reported 06-10-2026',
       drawings: 'PDU-3 and PDU-2 single line diagrams dated 05-10-26, and the server room layout '
               + '05-10-2026: both ways drawn SPARE CABIN D-02, both outlets marked SPARE.',
       note: 'The only one of the eight outside zone 1. It sat on B phase on both boards, while '
@@ -914,7 +914,7 @@ const DC_CONFIG = {
       cabinet: 'Cabin A-01', label: 'A-01', kind: 'out', date: '2026-09-12',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q1', 'PDU 6|Q1'],
-      reported: 'Advised by Jais, 2026-09-12',
+      reported: 'Reported 12-09-2026',
       drawings: 'Drawn CABIN A-01 SPARE on every issue on file, the 08-09-2026 set included, so '
               + 'the drawings already held it as a reserved position before it was advised.',
       note: 'The date it physically came out is not recorded. It was the one cabinet unread on '

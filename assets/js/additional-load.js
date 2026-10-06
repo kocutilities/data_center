@@ -816,7 +816,7 @@
     function polesText(w) {
         return w.ph === '3' ? 'four-pole RCBO, three phase' : 'two-pole RCBO, ' + w.ph + ' phase and neutral';
     }
-    /* Three kinds of spare, as the drawings use them (Jais, 19-09-2026):
+    /* Three kinds of spare, as the drawings use them (reported 19-09-2026):
          SPARE             nothing on the RCBO's outgoing terminals - no cable
          SPARE Cabin X     spare cabin: cable connected, and a spare industrial
                            socket installed under cabinet X, nothing plugged in

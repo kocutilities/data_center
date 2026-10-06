@@ -324,7 +324,7 @@
             '<ul><li><b>SPARE</b> — nothing is connected to the RCBO’s outgoing terminals: no cable.</li>' +
             '<li><b>SPARE CABIN x</b> — a spare cabin: the outgoing cable is connected, and a spare industrial ' +
             'socket is installed under cabinet x, with nothing plugged in. PDU-1 Q26 and PDU-6 Q26 are spare-cabin ' +
-            'ways for A-14. (As advised by Jais, 19-09-2026.)</li>' +
+            'ways for A-14. (Reported 19-09-2026.)</li>' +
             '<li>The server room layout marks both kinds SPARE beside the outlet, so a SPARE mark on the layout is ' +
             'consistent with either label on a PDU drawing.</li></ul>' +
 
