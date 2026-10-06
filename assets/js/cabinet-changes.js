@@ -2,7 +2,7 @@
    KOC Data Center - cabinet changes
    cabinet-changes.js
 
-   Which cabinets have gone out of service, which reserved positions
+   Which cabinets have been decommissioned, which reserved positions
    have been taken into use, and what each one's ways were carrying
    the last time anybody read them.
 
@@ -124,7 +124,7 @@
               + (readOf < waysOf ? ' — ' + readOf + ' of ' + waysOf + ' ways read' : '');
 
         [['In service now', live, 'dual-fed cabinets', ''],
-         ['Out of service', out.length, 'positions held, not released', 't-out'],
+         ['Decommissioned', out.length, 'positions held, not released', 't-out'],
          ['Taken into use', inn.length, inn.length === 1 ? 'a reserved position made live'
                                                          : 'reserved positions made live', 't-in'],
          ['Ways held in reserve', ways, 'cable and socket in place', 't-held'],
@@ -168,7 +168,7 @@
         c.id = e.label;
         var head = el('div', 'ch-head');
         head.appendChild(el('span', 'ch-cab', 'Cabinet ' + e.label));
-        head.appendChild(el('span', 'pill ' + e.kind, e.kind === 'out' ? 'Out of service' : 'Taken into use'));
+        head.appendChild(el('span', 'pill ' + e.kind, e.kind === 'out' ? 'Decommissioned' : 'Taken into use'));
         head.appendChild(el('span', 'ch-id', e.pair));
         head.appendChild(el('span', 'ch-since', dmy(e.date)));
         c.appendChild(head);
@@ -180,7 +180,7 @@
         var line;
         if (e.kind === 'out') {
             line = (was ? 'In service on the round shown, ' + drew + '. '
-                        : 'Already out of service on the round shown. ')
+                        : 'Already decommissioned on the round shown. ')
                  + 'Its ways are kept as spare cabin ways.';
         } else if (was) {
             line = 'In service on the round shown, ' + drew + '.';
@@ -233,7 +233,7 @@
         var ways = out.reduce(function (s, e) { return s + e.ways.length; }, 0);
         $('method').innerHTML =
             '<h3>What counts as a change here</h3>' +
-            '<ul><li><b>Out of service</b> — the cabinet was live on both feeds and is not now. Its ways stay in ' +
+            '<ul><li><b>Decommissioned</b> — the cabinet was live on both feeds and is not now. Its ways stay in ' +
             'the schedules, redrawn as <b>spare cabin ways</b>: the cable is still connected and a spare industrial ' +
             'socket is still installed under the position, so the cabinet can come back without new cabling. ' +
             '<b>' + ways + ' ways</b> are held that way across ' + out.length + ' positions.</li>' +
@@ -264,7 +264,7 @@
             'with the room as it stood.</li></ul>';
     }
 
-    function render() { renderTiles(); renderList('out', 'out', 'No cabinet has been taken out of service.');
+    function render() { renderTiles(); renderList('out', 'out', 'No cabinet has been decommissioned.');
                         renderList('in', 'in', 'No reserved position has been taken into use.'); renderMethod(); }
 
     /* ---------------------------------------------------------
