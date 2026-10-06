@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Supply Changes — KOC Data Center</title>
-<meta name="apple-mobile-web-app-title" content="Supply Changes">
+<title>Cabinet Changes — KOC Data Center</title>
+<meta name="apple-mobile-web-app-title" content="Cabinet Changes">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="assets/css/theme.css?v=dd6f95a4">
@@ -24,6 +24,18 @@
 .tile-s .v { font-size: 25px; font-weight: 660; margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--tc, var(--text)); }
 .tile-s .s { font-size: 11.4px; color: var(--text-faint); }
 .t-temp { --tc: var(--warn); }  .t-review { --tc: #fb923c; }  .t-draw { --tc: var(--accent); }
+.t-out { --tc: var(--bad); }  .t-in { --tc: var(--good); }  .t-held { --tc: var(--accent); }
+.change.out { border-left-color: var(--bad); }
+.change.in { border-left-color: var(--good); }
+.pill.out { color: var(--bad); background: var(--bad-soft); border-color: rgba(248,113,113,.35); }
+.pill.in  { color: var(--good); background: var(--good-soft); border-color: rgba(52,211,153,.35); }
+.wayrow { display: grid; grid-template-columns: 104px 92px 70px 1fr 110px; gap: 6px 12px; font-size: 12.4px;
+          padding: 7px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.wayrow.head { border-top: 0; font-size: 10.4px; letter-spacing: .09em; text-transform: uppercase;
+               color: var(--text-faint); }
+.wayrow b { font-weight: 640; }
+.wayrow .dim { color: var(--text-faint); }
+@media (max-width: 760px) { .wayrow { grid-template-columns: 1fr 1fr; } .wayrow.head { display: none; } }
 html[data-theme="light"] .t-review { --tc: #ea580c; }
 html[data-theme="light"] .t-temp { --tc: #b45309; }
 
@@ -149,11 +161,11 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
                     <svg class="i" viewBox="0 0 24 24"><path d="M4 4v6h16V4M4 14v6h16v-6M12 10v4"/></svg>
                     Single Line Diagram
                 </a>
-                <a href="supply-changes.html" class="active" aria-current="page">
+                <a href="supply-changes.html">
                     <svg class="i" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
                     Supply Changes
                 </a>
-                <a href="cabinet-changes.html">
+                <a href="cabinet-changes.html" class="active" aria-current="page">
                     <svg class="i" viewBox="0 0 24 24"><path d="M4 5h7v14H4zM13 5h7v14h-7M16 9h1M16 15h1M7 9h1M7 15h1"/></svg>
                     Cabinet Changes
                 </a>
@@ -196,7 +208,7 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
         <div class="wrap">
 
             <div class="topbar">
-                <div><h1 class="page-title">Supply Changes</h1></div>
+                <div><h1 class="page-title">Cabinet Changes</h1></div>
                 <div class="topbar-actions">
                     <button id="themeBtn" class="icon-btn" type="button" aria-label="Switch theme">
                         <svg class="i ico-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="i ico-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -206,8 +218,11 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 
             <section class="section">
                 <div class="section-head">
-                    <h2>Register</h2>
-                    <span class="hint">cabinets not fed through their standard pair of PDU breakers</span>
+                    <h2>Cabinet changes</h2>
+                    <span class="hint">cabinets taken out of service, and reserved positions taken into use</span>
+                    <span class="spacer"></span>
+                    <label for="date" style="margin:0">Load from</label>
+                    <select id="date" style="width:auto"></select>
                 </div>
                 <div class="field-note" id="status"></div>
                 <div class="tiles" id="tiles"></div>
@@ -215,23 +230,25 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 
             <section class="section">
                 <div class="section-head">
-                    <h2>Temporary supply changes</h2>
-                    <span class="hint">changes made on site, with the date and the reason</span>
+                    <h2>Out of service</h2>
+                    <span class="hint">the ways are kept as spare cabin ways, so the position is held</span>
                 </div>
-                <div id="temporary"></div>
+                <div id="out"></div>
             </section>
 
             <section class="section">
                 <div class="section-head">
-                    <h2>Found in the drawing review</h2>
-                    <span class="hint">departures from the standard configuration, recorded for further review</span>
+                    <h2>Taken into use</h2>
+                    <span class="hint">a reserved position that became a live cabinet</span>
                 </div>
-                <div id="review"></div>
+                <div id="in"></div>
             </section>
 
             <section class="section">
-                <div class="section-head"><h2>How this was checked</h2></div>
-                <div class="method" id="method"></div>
+                <div class="section-head">
+                    <h2>How to read this</h2>
+                </div>
+                <div id="method" class="rule-note" style="border-top:0"></div>
             </section>
 
         </div>
@@ -241,7 +258,7 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 <script src="assets/js/config.js?v=dd6f95a4"></script>
 <script src="assets/js/koc-criteria.js?v=dd6f95a4"></script>
 <script src="assets/js/cabinet-model.js?v=dd6f95a4"></script>
-<script src="assets/js/supply-changes.js?v=dd6f95a4"></script>
+<script src="assets/js/cabinet-changes.js?v=dd6f95a4"></script>
 <script src="assets/js/auth-ui.js?v=dd6f95a4"></script>
 </body>
 </html>

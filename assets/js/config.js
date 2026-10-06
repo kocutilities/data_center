@@ -315,7 +315,7 @@ const DC_CONFIG = {
         { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '25A', ph: 'B' },
         { c: 'Q34', rack: 'Cabin H-09', breaker: '25A', ph: 'R' },
         { c: 'Q35', rack: 'Cabin H-10', breaker: '25A', ph: 'Y' },
-        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'B' },
+        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'B', until: '2026-09-10' },
         { c: 'Q37', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'R' },
         { c: 'Q38', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'Y' },
         { c: 'Q39', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'B' },
@@ -821,6 +821,125 @@ const DC_CONFIG = {
       resolved: { date: '2026-09-19',
         text: 'PDU-4 and PDU-5 single line diagrams dated 17-09-26 rename Q30 and Q31 SPARE CABIN H-04, '
             + 'matching the layout. Ratings and phases unchanged. The reserved pair belongs to H-04.' }
+    }
+  ],
+  /* ---------------------------------------------------------------
+     Cabinets taken out of service, and taken into it.
+
+     A decommissioned cabinet keeps its ways: they are redrawn as
+     spare cabin ways, cable and socket in place, so the position is
+     held rather than released. That is why a withdrawal shows up
+     here and not as a change in the way count.
+
+       kind 'out'  the cabinet was in service and is not now
+       kind 'in'   a reserved position taken into use
+
+     `date` is the day the change took effect where that is known,
+     and the day the drawing recorded it where it is not - each entry
+     says which. Ways are 'PDU n|Qnn', the reading sheet's own key, so
+     the page can show what each one last carried.
+
+     Every way here also carries `until` or `from` in the schedules
+     above, which is what lets a past reading round be shown with the
+     room as it stood then.
+     --------------------------------------------------------------- */
+  cabinetChanges: [
+    {
+      cabinet: 'Cabin A-08', label: 'A-08', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q8', 'PDU 1|Q9', 'PDU 6|Q8', 'PDU 6|Q9'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN A-08 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin A-09', label: 'A-09', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q10', 'PDU 1|Q11', 'PDU 6|Q10', 'PDU 6|Q11'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN A-09 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin A-10', label: 'A-10', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q12', 'PDU 1|Q13', 'PDU 6|Q12', 'PDU 6|Q13'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN A-10 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin B-03', label: 'B-03', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q16', 'PDU 1|Q17', 'PDU 6|Q16', 'PDU 6|Q17'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN B-03 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin B-04', label: 'B-04', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q18', 'PDU 6|Q18'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN B-04 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin B-06', label: 'B-06', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q20', 'PDU 6|Q20'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN B-06 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin B-07', label: 'B-07', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q21', 'PDU 6|Q21'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-1 and PDU-6 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: every way drawn CABIN B-07 SPARE, every outlet marked SPARE.'
+    },
+    {
+      cabinet: 'Cabin D-02', label: 'D-02', kind: 'out', date: '2026-10-04',
+      pair: 'PDU-3 / PDU-2', zone: 2,
+      ways: ['PDU 3|Q18', 'PDU 2|Q18'],
+      reported: 'Major updating works at the data center. Advised by Jais, 2026-10-06',
+      drawings: 'PDU-3 and PDU-2 single line diagrams dated 05-10-26, and the server room layout '
+              + '05-10-2026: both ways drawn SPARE CABIN D-02, both outlets marked SPARE.',
+      note: 'The only one of the eight outside zone 1. It sat on B phase on both boards, while '
+          + 'zone 2 is governed by R, so withdrawing it does not relieve that zone\u2019s N-1 case.'
+    },
+    {
+      cabinet: 'Cabin A-01', label: 'A-01', kind: 'out', date: '2026-09-12',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q1', 'PDU 6|Q1'],
+      reported: 'Advised by Jais, 2026-09-12',
+      drawings: 'Drawn CABIN A-01 SPARE on every issue on file, the 08-09-2026 set included, so '
+              + 'the drawings already held it as a reserved position before it was advised.',
+      note: 'The date it physically came out is not recorded. It was the one cabinet unread on '
+          + 'both feeds in the 2026-08-16 round, which is consistent with it being out by then.'
+    },
+    {
+      cabinet: 'Cabin I-05', label: 'I-05', kind: 'out', date: '2026-09-10',
+      pair: 'PDU-5 / PDU-4', zone: 3,
+      ways: ['PDU 5|Q36'],
+      reported: 'The 10-09-2026 drawing revision',
+      drawings: 'PDU-5 Q36 was drawn CABIN I-05 on the 08-09-2026 issue and SPARE CABIN I-05 on '
+              + 'the 10-09-2026 one. Its PDU-4 way was already reserved.',
+      note: 'Until that revision I-05 was the one server cabin fed from a single feed. Nobody '
+          + 'recorded a current on PDU-5 Q36 on 2026-08-16, so it was already idle.'
+    },
+    {
+      cabinet: 'Cabin H-12', label: 'H-12', kind: 'in', date: '2026-09-10',
+      pair: 'PDU-5 / PDU-4', zone: 3,
+      ways: ['PDU 5|Q5', 'PDU 4|Q5'],
+      reported: 'The 10-09-2026 drawing revision',
+      drawings: 'Q5 on both PDU-5 and PDU-4 was drawn CABIN H-12 SPARE on the 08-09-2026 issue '
+              + 'and CABIN H-12 on the 10-09-2026 one \u2014 a reserved position taken into use.',
+      note: 'The meter was ahead of the drawing: Q5 carried 0.7 / 0.6 / 0.6 A on PDU-4 and '
+          + '0.7 / 0.6 / 0.7 A on PDU-5 on 2026-08-16, while both sheets still called it spare. '
+          + 'H-12 keeps a reserved pair at Q64 on both boards.'
     }
   ]
 };

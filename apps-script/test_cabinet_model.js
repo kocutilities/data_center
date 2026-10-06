@@ -376,6 +376,46 @@ section('The room on a date - a withdrawn cabinet belongs to the rounds it was r
           'normal');
 }
 
+section('Cabinet changes register - what the Cabinet Changes page shows');
+{
+    const REG = CFG.cabinetChanges;
+    const out = REG.filter(e => e.kind === 'out'), inn = REG.filter(e => e.kind === 'in');
+    check('ten positions out of service, one taken into use', [out.length, inn.length], [10, 1]);
+    check('every way named is a real PDU way',
+          REG.flatMap(e => e.ways).filter(k => {
+              const [p, q] = k.split('|');
+              return !(CFG.pduCircuits[p] || []).some(w => w.c === q);
+          }), []);
+    check('every withdrawn way is drawn spare today, and names its cabinet',
+          out.flatMap(e => e.ways).map(k => {
+              const [p, q] = k.split('|');
+              return CFG.pduCircuits[p].find(w => w.c === q).rack;
+          }).filter(r => !/SPARE/i.test(r) || !/cabin/i.test(r)), []);
+    check('every way taken into use is live today',
+          inn.flatMap(e => e.ways).map(k => {
+              const [p, q] = k.split('|');
+              return CFG.pduCircuits[p].find(w => w.c === q).rack;
+          }).filter(r => /SPARE/i.test(r)), []);
+    check('the register and the schedules agree on the dates',
+          REG.flatMap(e => e.ways.map(k => {
+              const [p, q] = k.split('|');
+              const w = CFG.pduCircuits[p].find(x => x.c === q);
+              const stamp = e.kind === 'out' ? w.until : w.from;
+              return stamp && stamp !== e.date ? e.label + ' ' + k + ' ' + stamp : null;
+          })).filter(Boolean), []);
+    check('no cabinet is both in and out', out.filter(e => inn.some(i => i.cabinet === e.cabinet)), []);
+    check('each entry carries its source and the drawing that shows it',
+          REG.filter(e => !e.reported || !e.drawings).map(e => e.label), []);
+    /* the eight of 2026-10-04 carry 24 ways between them */
+    const oct = out.filter(e => e.date === '2026-10-04');
+    check('the 2026-10-04 group is eight cabinets over 24 ways',
+          [oct.length, oct.reduce((s, e) => s + e.ways.length, 0)], [8, 24]);
+    check('  ... and every one of them is gone from the room today',
+          M.build().cabinets.filter(c => oct.some(e => e.cabinet === c.name)).map(c => c.name), []);
+    check('  ... but all eight are there for a round before the works',
+          M.build('2026-08-16').cabinets.filter(c => oct.some(e => e.cabinet === c.name)).length, 8);
+}
+
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {
     const B = (I, plate) => { const t = M.tripBand(I, plate); return t ? t.band : null; };
