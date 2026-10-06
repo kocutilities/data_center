@@ -1446,7 +1446,9 @@
                       + 'readings across every board. Switch to a single day.' }));
         }
         var rec = readingsPlus(agg);
-        var built = DC_CABINETS.build();
+        /* the room as it stood on the date being assessed, so a round
+           taken before a cabinet was withdrawn is judged with it in */
+        var built = DC_CABINETS.build(basis === 'today' ? $('date').value : null);
         var res = built.cabinets.map(function (c) { return DC_CABINETS.analyse(c, rec); });
         var sides = ['EMSB 1', 'EMSB 2'].map(function (id) { return DC_CABINETS.emsbLoss(rec, res, id); });
         var recB = readings;

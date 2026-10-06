@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Cabinets">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=388bcece">
-<script src="assets/js/auth.js?v=388bcece"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=617d44b6">
+<script src="assets/js/auth.js?v=617d44b6"></script>
 <script>KOCAuth.require();</script>
 <style>
 /* Four states plus two for missing data. Critical needs a colour of its own
@@ -92,6 +92,9 @@ html[data-theme="light"] .st-high { --c: #b45309; }
     font-variant-numeric: tabular-nums; transition: transform .1s;
 }
 .tile:hover { transform: scale(1.08); }
+/* in service on the date shown, decommissioned since */
+.tile.is-gone { border-style: dashed; opacity: .82; }
+.tile.is-gone span:first-child { text-decoration: line-through; text-decoration-thickness: 1px; }
 .tile small { font-size: 9.6px; font-weight: 600; opacity: .85; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-dim); margin-top: 10px; }
 
@@ -484,11 +487,11 @@ a.flag:hover { text-decoration: underline; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=388bcece"></script>
-<script src="assets/js/koc-criteria.js?v=388bcece"></script>
-<script src="assets/js/system-model.js?v=388bcece"></script>
-<script src="assets/js/cabinet-model.js?v=388bcece"></script>
-<script src="assets/js/cabinets.js?v=388bcece"></script>
-<script src="assets/js/auth-ui.js?v=388bcece"></script>
+<script src="assets/js/config.js?v=617d44b6"></script>
+<script src="assets/js/koc-criteria.js?v=617d44b6"></script>
+<script src="assets/js/system-model.js?v=617d44b6"></script>
+<script src="assets/js/cabinet-model.js?v=617d44b6"></script>
+<script src="assets/js/cabinets.js?v=617d44b6"></script>
+<script src="assets/js/auth-ui.js?v=617d44b6"></script>
 </body>
 </html>

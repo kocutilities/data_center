@@ -348,6 +348,34 @@ section('Decommissioned 2026-10-04 - eight cabinets, 24 ways kept as spare-cabin
           [109, 260]);
 }
 
+section('The room on a date - a withdrawn cabinet belongs to the rounds it was read in');
+{
+    const today = M.build(), aug = M.build('2026-08-16'), sep = M.build('2026-09-15');
+    const names = b => b.cabinets.map(c => c.name);
+    check('today: 109 cabinets, and the eight are gone', [today.cabinets.length,
+          names(today).filter(n => /A-08|B-07|D-02/.test(n))], [109, []]);
+    check('2026-08-16: the round found 118 - the eight, and A-01 before it was withdrawn',
+          [aug.cabinets.length, names(aug).filter(n => /A-08|A-01/.test(n)).sort()],
+          [118, ['Cabin A-01', 'Cabin A-08']]);
+    check('  ... named without the SPARE their labels carry now',
+          names(aug).filter(n => /SPARE/i.test(n)), []);
+    check('2026-09-15: A-01 already withdrawn, the eight still there', sep.cabinets.length, 117);
+    check('a date after the works is the room as it is now', M.build('2026-10-06').cabinets.length, 109);
+    check('the withdrawal date travels with the cabinet, for the page to show',
+          aug.cabinets.find(c => c.name === 'Cabin A-08').until, '2026-10-04');
+    /* the same mechanism carries A-12's move of 2026-03-01 */
+    const before = M.build('2026-02-01').cabinets.find(c => c.name === 'Cabin A12');
+    const after = M.build('2026-08-16').cabinets.find(c => c.name === 'Cabin A12');
+    check('A-12 was on PDU-1 Q76 before the move and is on Q46 after',
+          [before.A.map(w => w.q), after.A.map(w => w.q)], [['Q76'], ['Q46']]);
+    check('  ... and pairs exactly either way', [before.matched, after.matched], [true, true]);
+    check('an old round is assessed against the breakers it actually had',
+          M.analyse(aug.cabinets.find(c => c.name === 'Cabin A-08'),
+                    Object.assign(rd('PDU 1', 'Q8', { y: 4 }), rd('PDU 6', 'Q8', { y: 4 }),
+                                  rd('PDU 1', 'Q9', { b: 5 }), rd('PDU 6', 'Q9', { b: 5 }))).state,
+          'normal');
+}
+
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {
     const B = (I, plate) => { const t = M.tripBand(I, plate); return t ? t.band : null; };

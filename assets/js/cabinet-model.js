@@ -83,13 +83,43 @@ var DC_CABINETS = (function () {
        the cabinets, from config
        --------------------------------------------------------- */
 
-    function build() {
+    /* The room on a given date.
+
+       The schedules hold what the drawings show TODAY. A way that has been
+       withdrawn carries `until`, and one taken into use carries `from`, so
+       a date before that change rebuilds the room as it stood then - which
+       is the room the readings of that date belong to. Without this, a
+       cabinet decommissioned last week disappears from last month's round
+       while its readings sit in the sheet, unaccounted for.
+
+       build() with no date is today's room, which is what every page that
+       is about the present asks for. */
+    function spareOn(c, asOf) {
+        var sp = isSpare(c.rack);
+        if (!asOf) return sp;
+        if (sp && c.until && asOf < c.until) return false;   /* still in service then */
+        if (!sp && c.from && asOf < c.from) return true;     /* not yet in use then   */
+        return sp;
+    }
+
+    /* The name to file it under on that date: a way brought back for an
+       earlier date is named without the SPARE its label carries now. */
+    function rackOn(c, asOf) {
+        if (spareOn(c, asOf) || !isSpare(c.rack)) return c.rack;
+        return String(c.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function build(asOf) {
         var byName = {};
         Object.keys(DC_CONFIG.pduCircuits).forEach(function (pdu) {
             var feed = DC_PDU_FEED[pdu];
             DC_CONFIG.pduCircuits[pdu].forEach(function (c) {
-                if (isSpare(c.rack)) return;
-                var cab = byName[c.rack] || (byName[c.rack] = { name: c.rack, A: [], B: [] });
+                if (spareOn(c, asOf)) return;
+                var name = rackOn(c, asOf);
+                var cab = byName[name] || (byName[name] = { name: name, A: [], B: [] });
+                /* withdrawn since the date being shown: the page says so
+                   rather than quietly listing it as if it were still there */
+                if (c.until) cab.until = c.until;
                 /* pairQ: a way moved off the standard pairing (supplyChanges)
                    names the partner's way number, so the pair stays exact */
                 cab[feed].push({ pdu: pdu, q: c.c, pq: c.pairQ || c.c, ph: c.ph, plate: plateOf(c.breaker),
@@ -652,6 +682,7 @@ var DC_CABINETS = (function () {
 
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
+        spareOn: spareOn,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
         tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,

@@ -123,6 +123,10 @@
             shownDate = date;
             fillDates(d.dates, date);
             var rec = d.recorded || {};
+            /* the room as it stood on the date being shown: a cabinet
+               decommissioned since then was there, was read, and belongs
+               in that round's figures */
+            built = M.build(date);
             results = built.cabinets.map(function (c) { return M.analyse(c, rec); });
             pairs = M.pduPairs(rec);
             emsb = { 'EMSB 1': M.emsbLoss(rec, results, 'EMSB 1'),
@@ -722,6 +726,24 @@
     function renderMap() {
         var host = $('map');
         host.innerHTML = '';
+        /* Looking at a past round: say which cabinets have been withdrawn
+           since, so nobody reads them as still in the room - and so the
+           count against today's drawings is explained. */
+        var gone = results.filter(function (r) { return r.cab.until; });
+        if (gone.length) {
+            var byDate = {};
+            gone.forEach(function (r) { (byDate[r.cab.until] = byDate[r.cab.until] || []).push(short(r.cab.name)); });
+            var parts = Object.keys(byDate).sort().map(function (d) {
+                return byDate[d].sort().map(esc).join(', ') + ' (' + ymd(d) + ')';
+            });
+            var note = el('div', 'rule-note');
+            note.style.margin = '0 0 12px';
+            note.innerHTML = '<b>' + gone.length + ' of these cabinets have since been withdrawn</b> — '
+                + parts.join('; ') + '. They were in service on ' + ymd(shownDate) + ' and are shown as that '
+                + 'round found them. Their ways are now drawn as spare cabin ways, so on today’s date they '
+                + 'no longer appear.';
+            host.appendChild(note);
+        }
         var ZNAME = { 1: 'Zone 1 · PDU 1 / 6', 2: 'Zone 2 · PDU 3 / 2', 3: 'Zone 3 · PDU 5 / 4', 4: 'Zone 4 · PDU 7 / 8' };
         [1, 2, 3, 4].forEach(function (z) {
             var inZone = results.filter(function (r) { return r.cab.zone === z; });
@@ -738,9 +760,10 @@
                     var t = el('button', 'tile st-' + st);
                     t.type = 'button';
                     t.appendChild(el('span', '', short(r.cab.name)));
+                    if (r.cab.until) t.classList.add('is-gone');
                     var g = govPct(r);
                     t.appendChild(el('small', '', g === null ? '—' : pct(g).replace(' ', '')));
-                    t.title = r.cab.name + ' — ' + LABEL[st] +
+                    t.title = r.cab.name + (r.cab.until ? ' (decommissioned ' + ymd(r.cab.until) + ')' : '') + ' — ' + LABEL[st] +
                               (g === null ? '' : ', worst surviving breaker ' + pct(g) + ' of continuous' +
                                (scenario === 'pdu' ? '' : ' ' + CASE[scenario].when));
                     t.addEventListener('click', function () { reveal(r.cab.name); });
