@@ -36,7 +36,9 @@
    (the layout marks each rack "P1 Q74 / P6 Q74"), and the same number
    is on the same phase on both. So for a cabinet whose two sides match,
    the surviving breaker carries exactly its own current plus its
-   partner's. 115 of the 117 cabinets match.
+   partner's. 107 of the 109 cabinets match. (Eight cabinets were
+   decommissioned on 2026-10-04: A-08, A-09, A-10, B-03, B-04, B-06,
+   B-07 and D-02. Their ways are kept as spare-cabin ways.)
 
    Two do not - G-01 and G-02 have different ways, and phases, on
    each side (SR-002). There, matching ways are paired as above and the

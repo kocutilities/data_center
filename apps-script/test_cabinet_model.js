@@ -53,10 +53,10 @@ const rd = (pdu, q, v) => ({ ['PDU|' + pdu + '|' + q]: v });
 section('Cabinets built from config');
 {
     const { cabinets, singleFed } = M.build();
-    check('117 dual-fed cabinets', cabinets.length, 117);
+    check('109 dual-fed cabinets', cabinets.length, 109);
     check('8 single-fed loads kept apart', singleFed.length, 8);
     check('no single-fed load is a cabinet', singleFed.filter(s => /cabin|^L-|^M-/i.test(s.name)).map(s => s.name), []);
-    check('115 pair exactly', cabinets.filter(c => c.matched).length, 115);
+    check('107 pair exactly', cabinets.filter(c => c.matched).length, 107);
     check('the two that do not', cabinets.filter(c => !c.matched).map(c => c.name).sort(),
           ['Cabin G-01', 'Cabin G-02']);
     /* the pairing key is way|phase; that only works if each side sits on one PDU */
@@ -66,8 +66,8 @@ section('Cabinets built from config');
     check('every A side is on an odd PDU, every B side on an even one',
           cabinets.filter(c => c.A.some(w => +w.pdu.slice(4) % 2 === 0) || c.B.some(w => +w.pdu.slice(4) % 2 === 1))
                   .map(c => c.name), []);
-    check('57 paired ways carry different breakers on each side',
-          cabinets.reduce((s, c) => s + c.mismatch.length, 0), 57);
+    check('56 paired ways carry different breakers on each side',
+          cabinets.reduce((s, c) => s + c.mismatch.length, 0), 56);
     check('G-10 is one: 16 A on PDU 5, 25 A on PDU 4',
           cabinets.find(c => c.name === 'Cabin G-10').mismatch, [{ q: 'Q24', plateA: 16, plateB: 25 }]);
     check('Cabin A-02 is PDU 1 Q2 and PDU 6 Q2, the example given',
@@ -318,6 +318,36 @@ section('PDU-6 Q26 is SPARE CABIN A-14, as drawn - misread as live until 19-09-2
 }
 
 /* ======================================================== over the plate is not a trip */
+section('Decommissioned 2026-10-04 - eight cabinets, 24 ways kept as spare-cabin ways');
+{
+    const GONE = ['A-08', 'A-09', 'A-10', 'B-03', 'B-04', 'B-06', 'B-07', 'D-02'];
+    const WAYS = { 'PDU 1': ['Q8','Q9','Q10','Q11','Q12','Q13','Q16','Q17','Q18','Q20','Q21'],
+                   'PDU 6': ['Q8','Q9','Q10','Q11','Q12','Q13','Q16','Q17','Q18','Q20','Q21'],
+                   'PDU 3': ['Q18'], 'PDU 2': ['Q18'] };
+    const { cabinets, singleFed } = M.build();
+    const live = cabinets.concat(singleFed).map(c => c.name);
+    check('none of the eight is a live cabinet any more',
+          GONE.filter(n => live.some(x => x.indexOf(n) >= 0)), []);
+    check('all 24 ways are drawn as spare, on both feeds',
+          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack))
+                .filter(r => !/SPARE/i.test(r)), []);
+    check('  ... and each still names its cabinet, so the position is not lost',
+          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack))
+                .filter(r => !/cabin/i.test(r)), []);
+    check('PDU-1 and PDU-6 word it as drawn, CABIN x SPARE',
+          CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q8').rack, 'Cabin A-08 SPARE');
+    check('PDU-3 and PDU-2 word it as drawn, SPARE CABIN D-02',
+          ['PDU 3', 'PDU 2'].map(p => CFG.pduCircuits[p].find(w => w.c === 'Q18').rack),
+          ['SPARE Cabin D-02', 'SPARE Cabin D-02']);
+    check('ratings and phases are untouched by the decommissioning',
+          [CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q18').breaker,
+           CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q18').ph,
+           CFG.pduCircuits['PDU 6'].find(w => w.c === 'Q8').breaker], ['32A', 'B', '25A']);
+    check('the room is 109 dual-fed cabinets and 284 - 24 = 260 ways in service',
+          [cabinets.length, Object.values(CFG.pduCircuits).flat().filter(w => !/spare/i.test(w.rack)).length],
+          [109, 260]);
+}
+
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {
     const B = (I, plate) => { const t = M.tripBand(I, plate); return t ? t.band : null; };
@@ -402,9 +432,9 @@ section('Against the sheet, 2026-08-16');
         check('  ... UPS-2 at 55.1 %, ESMSB-2 at 76.1 %',
               [r1(e1.chain[3].pct), r1(e1.chain[4].pct)], [55.1, 76.1]);
         check('  ... PDU 6 incomer 127.6 A, High Load', [r1(e1.pdus[0].peak), e1.pdus[0].state], [127.6, 'high']);
-        check('  ... cabinets 109 / 5 / 1 / 0, 2 not read',
+        check('  ... cabinets 101 / 5 / 1 / 0, 2 not read',
               [e1.cabinets.normal, e1.cabinets.high, e1.cabinets.critical, e1.cabinets.overload, e1.cabinets.missing],
-              [109, 5, 1, 0, 2]);
+              [101, 5, 1, 0, 2]);
         check('EMSB-2 lost: G-10 trips -> Overload', [e2.state, e2.cabinets.worst[0].res.cab.name], ['overload', 'Cabin G-10']);
         check('  ... transformer B 690 A, 32.3 %', [e2.chain[0].peak, r1(e2.chain[0].pct)], [690, 32.3]);
         [e1, e2].forEach(e => {
