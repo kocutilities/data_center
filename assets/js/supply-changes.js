@@ -329,9 +329,10 @@
             'consistent with either label on a PDU drawing.</li></ul>' +
 
             '<h3>Checked and consistent — not entries</h3>' +
-            '<ul><li><b>Reserved pairs named for a cabinet</b>, drawn SPARE on the layout and on both PDUs: A-01 (withdrawn ' +
-            '12-09-2026), A-14 Q26, A05 Q51, C-03, C-07 Q11, E-12 Q42, F-01 Q8, G-10 Q48, H-03 Q28, H-08 Q33, H-11 Q50, H-12 Q64, ' +
-            'I-05, I-06 and M-12 Q14. Planned spare capacity, not changes.</li>' +
+            '<ul><li><b>Reserved pairs named for a cabinet</b>, drawn SPARE on the layout and on both PDUs: A-14 Q26, ' +
+            'A05 Q51, C-07 Q11, E-12 Q42, F-01 Q8, G-10 Q48, H-03 Q28, H-08 Q33, H-11 Q50, H-12 Q64 and M-12 Q14. ' +
+            'Planned spare capacity, not changes. A-01, C-03, I-05 and I-06 are reserved in the same way but are ' +
+            'decommissioned cabinets — see <a href="cabinet-changes.html">Cabinet Changes</a>.</li>' +
             '<li><b>Decommissioned 04-10-2026</b> — A-08, A-09, A-10, B-03, B-04, B-06, B-07 and D-02. Every way of ' +
             'each is drawn CABIN x SPARE on its PDU and marked SPARE on the layout, so the pairs are still standard ' +
             'and still reserved for those positions. B-04 and B-06 also keep their older spare PDU-2 outlets ' +

@@ -243,16 +243,23 @@
             '<a href="supply-changes.html">Supply Changes</a> page.</li></ul>' +
 
             '<h3>The dates</h3>' +
-            '<ul><li>Where the day the work was done is known, that is the date shown — the eight cabinets of ' +
-            '<b>04-10-2026</b> are dated by the works, and the drawings that record them are dated 05-10-26.</li>' +
-            '<li>Where it is not, the date is the day the drawing recorded it, and the entry says so. I-05 and ' +
-            'H-12 are dated by the 10-09-2026 revision; A-01 was advised on 12-09-2026 and had been drawn as a ' +
-            'reserved position for longer than that.</li></ul>' +
+            '<ul><li>The date is the day the cabinet came out, where that is known: the eight of ' +
+            '<b>04-10-2026</b>, <b>A-01</b> (18-12-2024), <b>C-03</b> (12-11-2025) and <b>I-05 and I-06</b> ' +
+            '(31-12-2025). The drawings that record them are dated later, sometimes much later.</li>' +
+            '<li>Where it is not known, the date is the day the drawing recorded it, and the entry says so — ' +
+            'H-12 is dated by the 10-09-2026 revision.</li>' +
+            '<li><b>The drawings lag.</b> PDU-5 Q36 was still drawn as a live I-05 nine months after that ' +
+            'cabinet came out. Where a label and a date disagree, this register follows what was reported and ' +
+            'the entry says what the drawing showed.</li></ul>' +
 
             '<h3>The load shown</h3>' +
             '<ul><li>Pick a round at the top. Each way shows what that round recorded for it, and the cabinet ' +
             'line totals the ways across both feeds — so a round taken before the change shows what the cabinet ' +
             'was actually drawing, and a round after it shows the ways idle.</li>' +
+            '<li><b>Only the 2026 rounds reach way level.</b> The rounds of 2023, 2024 and 2025 record the ' +
+            'incomers alone, so for A-01, C-03, I-05 and I-06 — all out before 2026 — no round holds what they ' +
+            'drew, and their ways show as not read. What each one actually used is therefore not on record; ' +
+            'the ways listed are the ones the drawings reserve in its name.</li>' +
             '<li>The <b>Cabinet Load</b> page works the same way: open a round from before a withdrawal and the ' +
             'cabinet is there, struck through, counted as that round found it.</li>' +
             '<li>A way that nobody read is shown as <i>not read</i>, never as zero.</li></ul>' +

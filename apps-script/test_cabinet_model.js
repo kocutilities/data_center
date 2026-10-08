@@ -354,9 +354,16 @@ section('The room on a date - a withdrawn cabinet belongs to the rounds it was r
     const names = b => b.cabinets.map(c => c.name);
     check('today: 109 cabinets, and the eight are gone', [today.cabinets.length,
           names(today).filter(n => /A-08|B-07|D-02/.test(n))], [109, []]);
-    check('2026-08-16: the round found 118 - the eight, and A-01 before it was withdrawn',
-          [aug.cabinets.length, names(aug).filter(n => /A-08|A-01/.test(n)).sort()],
-          [118, ['Cabin A-01', 'Cabin A-08']]);
+    check('2026-08-16: the round found 117 - the eight of 2026-10-04 included',
+          [aug.cabinets.length, names(aug).filter(n => /A-08|A-01/.test(n))], [117, ['Cabin A-08']]);
+    check('  ... A-01, C-03, I-05 and I-06 were already out by then',
+          names(aug).filter(n => /A-01|C-03|I-05|I-06/.test(n)), []);
+    check('a round from before each of them: C-03 live on 2025-10-01, I-05 and I-06 too',
+          [M.build('2025-10-01').cabinets.length,
+           M.build('2025-10-01').cabinets.filter(c => /C-03|I-05|I-06/.test(c.name)).length], [120, 3]);
+    check('A-01 is there before 18-12-2024 and gone after',
+          [M.build('2024-12-01').cabinets.some(c => c.name === 'Cabin A-01'),
+           M.build('2025-01-01').cabinets.some(c => c.name === 'Cabin A-01')], [true, false]);
     check('  ... named without the SPARE their labels carry now',
           names(aug).filter(n => /SPARE/i.test(n)), []);
     check('2026-09-15: A-01 already withdrawn, the eight still there', sep.cabinets.length, 117);
@@ -380,7 +387,7 @@ section('Cabinet changes register - what the Cabinet Changes page shows');
 {
     const REG = CFG.cabinetChanges;
     const out = REG.filter(e => e.kind === 'out'), inn = REG.filter(e => e.kind === 'in');
-    check('ten positions out of service, one taken into use', [out.length, inn.length], [10, 1]);
+    check('twelve positions out of service, one taken into use', [out.length, inn.length], [12, 1]);
     check('every way named is a real PDU way',
           REG.flatMap(e => e.ways).filter(k => {
               const [p, q] = k.split('|');

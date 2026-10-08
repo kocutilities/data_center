@@ -118,7 +118,7 @@ const DC_CONFIG = {
      --------------------------------------------------------------- */
   pduCircuits: {
     'PDU 1': [
-        { c: 'Q1', rack: 'SPARE Cabin A-01', breaker: '20A', ph: '3', until: '2026-09-12' },
+        { c: 'Q1', rack: 'SPARE Cabin A-01', breaker: '20A', ph: '3', until: '2024-12-18' },
         { c: 'Q2', rack: 'Cabin A-02', breaker: '20A', ph: '3' },
         { c: 'Q3', rack: 'Cabin A-03', breaker: '20A', ph: '3' },
         { c: 'Q4', rack: 'Cabin A-04', breaker: '20A', ph: '3' },
@@ -200,9 +200,9 @@ const DC_CONFIG = {
         { c: 'Q78', rack: 'SPARE', breaker: '16A', ph: 'B' }
     ],
     'PDU 3': [
-        { c: 'Q1', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3' },
-        { c: 'Q2', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3' },
-        { c: 'Q3', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3' },
+        { c: 'Q1', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3', until: '2025-11-12' },
+        { c: 'Q2', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3', until: '2025-11-12' },
+        { c: 'Q3', rack: 'SPARE Cabin C-03', breaker: '25A', ph: '3', until: '2025-11-12' },
         { c: 'Q4', rack: 'Cabin C-04', breaker: '25A', ph: '3' },
         { c: 'Q5', rack: 'SPARE', breaker: '25A', ph: '3' },
         { c: 'Q6', rack: 'SPARE', breaker: '25A', ph: '3' },
@@ -315,10 +315,10 @@ const DC_CONFIG = {
         { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '25A', ph: 'B' },
         { c: 'Q34', rack: 'Cabin H-09', breaker: '25A', ph: 'R' },
         { c: 'Q35', rack: 'Cabin H-10', breaker: '25A', ph: 'Y' },
-        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'B', until: '2026-09-10' },
-        { c: 'Q37', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'R' },
-        { c: 'Q38', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'Y' },
-        { c: 'Q39', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'B' },
+        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'B', until: '2025-12-31' },
+        { c: 'Q37', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'R', until: '2025-12-31' },
+        { c: 'Q38', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'Y', until: '2025-12-31' },
+        { c: 'Q39', rack: 'SPARE Cabin I-06', breaker: '25A', ph: 'B', until: '2025-12-31' },
         { c: 'Q40', rack: 'SPARE', breaker: '25A', ph: 'R' },
         { c: 'Q41', rack: 'Cabin G-02', breaker: '25A', ph: 'Y' },
         { c: 'Q42', rack: 'Cabin G-01', breaker: '25A', ph: 'B' },
@@ -410,7 +410,7 @@ const DC_CONFIG = {
         { c: 'Q48', rack: 'SPARE', breaker: '32A', ph: '3' }
     ],
     'PDU 6': [
-        { c: 'Q1', rack: 'SPARE Cabin A-01', breaker: '25A', ph: '3', until: '2026-09-12' },
+        { c: 'Q1', rack: 'SPARE Cabin A-01', breaker: '25A', ph: '3', until: '2024-12-18' },
         { c: 'Q2', rack: 'Cabin A-02', breaker: '25A', ph: '3' },
         { c: 'Q3', rack: 'Cabin A-03', breaker: '25A', ph: '3' },
         { c: 'Q4', rack: 'Cabin A-04', breaker: '25A', ph: '3' },
@@ -490,9 +490,9 @@ const DC_CONFIG = {
         { c: 'Q78', rack: 'SPARE', breaker: '16A', ph: 'B' }
     ],
     'PDU 2': [
-        { c: 'Q1', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3' },
-        { c: 'Q2', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3' },
-        { c: 'Q3', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3' },
+        { c: 'Q1', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3', until: '2025-11-12' },
+        { c: 'Q2', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3', until: '2025-11-12' },
+        { c: 'Q3', rack: 'SPARE Cabin C-03', breaker: '32A', ph: '3', until: '2025-11-12' },
         { c: 'Q4', rack: 'Cabin C-04', breaker: '32A', ph: '3' },
         { c: 'Q5', rack: 'SPARE', breaker: '32A', ph: '3' },
         { c: 'Q6', rack: 'SPARE', breaker: '32A', ph: '3' },
@@ -605,10 +605,10 @@ const DC_CONFIG = {
         { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '16A', ph: 'B' },
         { c: 'Q34', rack: 'Cabin H-09', breaker: '16A', ph: 'R' },
         { c: 'Q35', rack: 'Cabin H-10', breaker: '16A', ph: 'Y' },
-        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '16A', ph: 'B' },
-        { c: 'Q37', rack: 'SPARE Cabin I-05', breaker: '16A', ph: 'R' },
-        { c: 'Q38', rack: 'SPARE Cabin I-06', breaker: '16A', ph: 'Y' },
-        { c: 'Q39', rack: 'SPARE Cabin I-06', breaker: '16A', ph: 'B' },
+        { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '16A', ph: 'B', until: '2025-12-31' },
+        { c: 'Q37', rack: 'SPARE Cabin I-05', breaker: '16A', ph: 'R', until: '2025-12-31' },
+        { c: 'Q38', rack: 'SPARE Cabin I-06', breaker: '16A', ph: 'Y', until: '2025-12-31' },
+        { c: 'Q39', rack: 'SPARE Cabin I-06', breaker: '16A', ph: 'B', until: '2025-12-31' },
         { c: 'Q40', rack: 'SPARE', breaker: '16A', ph: 'R' },
         { c: 'Q41', rack: 'Cabin G-02', breaker: '25A', ph: 'Y' },
         { c: 'Q42', rack: 'Cabin G-01', breaker: '16A', ph: 'B' },
@@ -911,24 +911,50 @@ const DC_CONFIG = {
           + 'zone 2 is governed by R, so withdrawing it does not relieve that zone\u2019s N-1 case.'
     },
     {
-      cabinet: 'Cabin A-01', label: 'A-01', kind: 'out', date: '2026-09-12',
+      cabinet: 'Cabin A-01', label: 'A-01', kind: 'out', date: '2024-12-18',
       pair: 'PDU-1 / PDU-6', zone: 1,
       ways: ['PDU 1|Q1', 'PDU 6|Q1'],
-      reported: 'Reported 12-09-2026',
-      drawings: 'Drawn CABIN A-01 SPARE on every issue on file, the 08-09-2026 set included, so '
-              + 'the drawings already held it as a reserved position before it was advised.',
-      note: 'The date it physically came out is not recorded. It was the one cabinet unread on '
-          + 'both feeds in the 2026-08-16 round, which is consistent with it being out by then.'
+      reported: 'Reported 08-10-2026',
+      drawings: 'Drawn CABIN A-01 SPARE on every issue on file, the 08-09-2026 set included \u2014 the '
+              + 'drawings have held it as a reserved position for as long as we have them.',
+      note: 'No way-level round covers the time it was running: the rounds before 2026 record the '
+          + 'incomers only. Its ways were unread on both feeds in the 2026-08-16 round, as expected '
+          + 'of a position that had been out for over a year.'
     },
     {
-      cabinet: 'Cabin I-05', label: 'I-05', kind: 'out', date: '2026-09-10',
+      cabinet: 'Cabin C-03', label: 'C-03', kind: 'out', date: '2025-11-12',
+      pair: 'PDU-3 / PDU-2', zone: 2,
+      ways: ['PDU 3|Q1', 'PDU 3|Q2', 'PDU 3|Q3', 'PDU 2|Q1', 'PDU 2|Q2', 'PDU 2|Q3'],
+      reported: 'Reported 08-10-2026',
+      drawings: 'Six ways, three a side, all drawn SPARE CABIN C-03 on every issue on file \u2014 the '
+              + '08-09-2026 set included, which is already after the cabinet came out. Each is a '
+              + 'four-pole way: 25 A on PDU-3, 32 A on PDU-2.',
+      note: 'The largest reserved position in the room, and the only one of three phase ways. No '
+          + 'way-level round covers its time in service, so what it drew is not on record.'
+    },
+    {
+      cabinet: 'Cabin I-05', label: 'I-05', kind: 'out', date: '2025-12-31',
       pair: 'PDU-5 / PDU-4', zone: 3,
-      ways: ['PDU 5|Q36'],
-      reported: 'The 10-09-2026 drawing revision',
-      drawings: 'PDU-5 Q36 was drawn CABIN I-05 on the 08-09-2026 issue and SPARE CABIN I-05 on '
-              + 'the 10-09-2026 one. Its PDU-4 way was already reserved.',
-      note: 'Until that revision I-05 was the one server cabin fed from a single feed. Nobody '
-          + 'recorded a current on PDU-5 Q36 on 2026-08-16, so it was already idle.'
+      ways: ['PDU 5|Q36', 'PDU 5|Q37', 'PDU 4|Q36', 'PDU 4|Q37'],
+      reported: 'Reported 08-10-2026',
+      drawings: 'The drawings lagged this one. PDU-5 Q36 was still drawn CABIN I-05 \u2014 live \u2014 on the '
+              + '08-09-2026 issue, nine months after the cabinet came out, and only the 10-09-2026 '
+              + 'revision marked it SPARE CABIN I-05. The other three ways were already reserved.',
+      note: 'Which of the four ways the cabinet actually used is not on record: the rounds from '
+          + 'its time in service read the incomers only. The four are what the drawings reserve in '
+          + 'its name. The stale PDU-5 Q36 label is also why this cabin was recorded for a while as '
+          + 'the one server cabin on a single feed \u2014 by then it was not in service at all.'
+    },
+    {
+      cabinet: 'Cabin I-06', label: 'I-06', kind: 'out', date: '2025-12-31',
+      pair: 'PDU-5 / PDU-4', zone: 3,
+      ways: ['PDU 5|Q38', 'PDU 5|Q39', 'PDU 4|Q38', 'PDU 4|Q39'],
+      reported: 'Reported 08-10-2026',
+      drawings: 'Its four ways were drawn plain SPARE on the 08-09-2026 issue and named SPARE CABIN '
+              + 'I-06 by the 10-09-2026 revision \u2014 the drawings reserved them in its name after the '
+              + 'cabinet had gone, not before.',
+      note: 'Out with I-05 on the same day. As with I-05, which ways it used is not on record; the '
+          + 'four are the ones now reserved in its name.'
     },
     {
       cabinet: 'Cabin H-12', label: 'H-12', kind: 'in', date: '2026-09-10',
