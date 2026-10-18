@@ -729,7 +729,14 @@
         /* Looking at a past round: say which cabinets have been withdrawn
            since, so nobody reads them as still in the room - and so the
            count against today's drawings is explained. */
-        var gone = results.filter(function (r) { return r.cab.until; });
+        /* A way with an end date means the WAY stopped serving that cabinet,
+           which is not the same as the cabinet going: B-14 simply moved from
+           Q55 to Q56 on 2026-10-16 and is still in the room. The test is
+           whether the cabinet is in the room as it stands now. */
+        var hereNow = {};
+        M.build().cabinets.forEach(function (c) { hereNow[c.name] = 1; });
+        var withdrawn = function (cab) { return !!cab.until && !hereNow[cab.name]; };
+        var gone = results.filter(function (r) { return withdrawn(r.cab); });
         if (gone.length) {
             var byDate = {};
             gone.forEach(function (r) { (byDate[r.cab.until] = byDate[r.cab.until] || []).push(short(r.cab.name)); });
@@ -760,10 +767,10 @@
                     var t = el('button', 'tile st-' + st);
                     t.type = 'button';
                     t.appendChild(el('span', '', short(r.cab.name)));
-                    if (r.cab.until) t.classList.add('is-gone');
+                    if (withdrawn(r.cab)) t.classList.add('is-gone');
                     var g = govPct(r);
                     t.appendChild(el('small', '', g === null ? '—' : pct(g).replace(' ', '')));
-                    t.title = r.cab.name + (r.cab.until ? ' (decommissioned ' + ymd(r.cab.until) + ')' : '') + ' — ' + LABEL[st] +
+                    t.title = r.cab.name + (withdrawn(r.cab) ? ' (decommissioned ' + ymd(r.cab.until) + ')' : '') + ' — ' + LABEL[st] +
                               (g === null ? '' : ', worst surviving breaker ' + pct(g) + ' of continuous' +
                                (scenario === 'pdu' ? '' : ' ' + CASE[scenario].when));
                     t.addEventListener('click', function () { reveal(r.cab.name); });

@@ -86,7 +86,7 @@ var AUDIT_SHEET = 'Audit';
    check_deploy.js compares it with the file on disk: if they match, the
    file on disk is exactly what is running. Do not edit by hand - the tests
    fail if it is not the hash of the file around it. */
-var CODE_FINGERPRINT = '3fe7933016c6';
+var CODE_FINGERPRINT = '6ff49725ec0c';
 
 /* What a request may contain. Generous enough never to refuse a real round -
    a full round is about 300 rows, the largest device is a 2133 A incomer and
@@ -154,14 +154,14 @@ var ALLOWED = {
   "PDU|PDU 1|Q19": ["SPARE",32],
   "PDU|PDU 1|Q20": ["Cabin B-06 SPARE",32],
   "PDU|PDU 1|Q21": ["Cabin B-07 SPARE",32],
-  "PDU|PDU 1|Q22": ["Cabin B-09",25],
-  "PDU|PDU 1|Q23": ["Cabin B-09",25],
+  "PDU|PDU 1|Q22": ["Cabin B-09",32],
+  "PDU|PDU 1|Q23": ["Cabin B-09",32],
   "PDU|PDU 1|Q24": ["Cabin B-05",32],
   "PDU|PDU 1|Q25": ["Cabin B-05",32],
   "PDU|PDU 1|Q26": ["SPARE Cabin A-14",32],
   "PDU|PDU 1|Q27": ["Cabin A-14",32],
-  "PDU|PDU 1|Q28": ["SPARE",32],
-  "PDU|PDU 1|Q29": ["SPARE",32],
+  "PDU|PDU 1|Q28": ["SPARE",25],
+  "PDU|PDU 1|Q29": ["SPARE",25],
   "PDU|PDU 1|Q30": ["SPARE",32],
   "PDU|PDU 1|Q31": ["SPARE",16],
   "PDU|PDU 1|Q32": ["SPARE",16],
@@ -265,8 +265,8 @@ var ALLOWED = {
   "PDU|PDU 3|Q52": ["Cabin B-11",32],
   "PDU|PDU 3|Q53": ["Cabin B-12",32],
   "PDU|PDU 3|Q54": ["Cabin B-13",32],
-  "PDU|PDU 3|Q55": ["Cabin B-14",32],
-  "PDU|PDU 3|Q56": ["SPARE",32],
+  "PDU|PDU 3|Q55": ["SPARE",32],
+  "PDU|PDU 3|Q56": ["Cabin B-14",32],
   "PDU|PDU 3|Q57": ["SPARE",32],
   "PDU|PDU 3|Q58": ["SPARE",32],
   "PDU|PDU 3|Q59": ["SPARE",16],
@@ -436,14 +436,14 @@ var ALLOWED = {
   "PDU|PDU 6|Q19": ["SPARE",32],
   "PDU|PDU 6|Q20": ["Cabin B-06 SPARE",32],
   "PDU|PDU 6|Q21": ["Cabin B-07 SPARE",32],
-  "PDU|PDU 6|Q22": ["Cabin B-09",25],
-  "PDU|PDU 6|Q23": ["Cabin B-09",25],
+  "PDU|PDU 6|Q22": ["Cabin B-09",32],
+  "PDU|PDU 6|Q23": ["Cabin B-09",32],
   "PDU|PDU 6|Q24": ["Cabin B-05",32],
   "PDU|PDU 6|Q25": ["Cabin B-05",32],
   "PDU|PDU 6|Q26": ["SPARE Cabin A-14",32],
   "PDU|PDU 6|Q27": ["Cabin A-14",32],
-  "PDU|PDU 6|Q28": ["SPARE",32],
-  "PDU|PDU 6|Q29": ["SPARE",32],
+  "PDU|PDU 6|Q28": ["SPARE",25],
+  "PDU|PDU 6|Q29": ["SPARE",25],
   "PDU|PDU 6|Q30": ["SPARE",32],
   "PDU|PDU 6|Q31": ["SPARE",16],
   "PDU|PDU 6|Q32": ["SPARE",16],
@@ -547,8 +547,8 @@ var ALLOWED = {
   "PDU|PDU 2|Q52": ["Cabin B-11",32],
   "PDU|PDU 2|Q53": ["Cabin B-12",32],
   "PDU|PDU 2|Q54": ["Cabin B-13",32],
-  "PDU|PDU 2|Q55": ["Cabin B-14",32],
-  "PDU|PDU 2|Q56": ["SPARE",32],
+  "PDU|PDU 2|Q55": ["SPARE",32],
+  "PDU|PDU 2|Q56": ["Cabin B-14",32],
   "PDU|PDU 2|Q57": ["SPARE",32],
   "PDU|PDU 2|Q58": ["SPARE",32],
   "PDU|PDU 2|Q59": ["SPARE",32],

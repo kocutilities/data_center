@@ -103,10 +103,22 @@ var DC_CABINETS = (function () {
     }
 
     /* The name to file it under on that date: a way brought back for an
-       earlier date is named without the SPARE its label carries now. */
+       earlier date is named without the SPARE its label carries now, or by
+       `was` where the drawing no longer names the cabinet at all - PDU-3
+       Q55 is drawn a plain SPARE since B-14 moved to Q56 on 2026-10-16. */
     function rackOn(c, asOf) {
         if (spareOn(c, asOf) || !isSpare(c.rack)) return c.rack;
+        if (c.was) return c.was;
         return String(c.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();
+    }
+
+    /* The breaker that was in the board on that date. A rating changed on
+       site is dated the same way a cabinet is, so an older round is judged
+       against the breaker it was actually read through: B-09's pair was
+       25 A until 2026-10-16 and is 32 A now. */
+    function breakerOn(c, asOf) {
+        return (asOf && c.breakerSince && c.prevBreaker && asOf < c.breakerSince)
+            ? c.prevBreaker : c.breaker;
     }
 
     function build(asOf) {
@@ -122,7 +134,8 @@ var DC_CABINETS = (function () {
                 if (c.until) cab.until = c.until;
                 /* pairQ: a way moved off the standard pairing (supplyChanges)
                    names the partner's way number, so the pair stays exact */
-                cab[feed].push({ pdu: pdu, q: c.c, pq: c.pairQ || c.c, ph: c.ph, plate: plateOf(c.breaker),
+                cab[feed].push({ pdu: pdu, q: c.c, pq: c.pairQ || c.c, ph: c.ph,
+                                 plate: plateOf(breakerOn(c, asOf)),
                                  key: 'PDU|' + pdu + '|' + c.c });
             });
         });
@@ -682,7 +695,7 @@ var DC_CABINETS = (function () {
 
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
-        spareOn: spareOn,
+        spareOn: spareOn, breakerOn: breakerOn,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
         tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,

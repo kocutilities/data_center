@@ -423,6 +423,36 @@ section('Cabinet changes register - what the Cabinet Changes page shows');
           M.build('2026-08-16').cabinets.filter(c => oct.some(e => e.cabinet === c.name)).length, 8);
 }
 
+section('PDU modifications of 2026-10-16 - ratings and B-14 moved a way');
+{
+    const w = (p, q) => CFG.pduCircuits[p].find(x => x.c === q);
+    check('PDU-1 and PDU-6 Q22 / Q23 are 32 A now, and were 25 A',
+          ['PDU 1', 'PDU 6'].flatMap(p => ['Q22', 'Q23'].map(q => w(p, q).breaker + '/' + w(p, q).prevBreaker)),
+          ['32A/25A', '32A/25A', '32A/25A', '32A/25A']);
+    check('  ... they are B-09 ways, and the pair stays matched before and after',
+          [M.build().cabinets.find(c => c.name === 'Cabin B-09').A.map(x => x.plate),
+           M.build('2026-08-16').cabinets.find(c => c.name === 'Cabin B-09').A.map(x => x.plate)],
+          [[32, 32], [25, 25]]);
+    check('PDU-1 and PDU-6 Q28 / Q29 are 25 A now, and were 32 A — both spare',
+          ['PDU 1', 'PDU 6'].flatMap(p => ['Q28', 'Q29'].map(q => w(p, q).breaker + '/' + w(p, q).prevBreaker + '/' + w(p, q).rack)),
+          ['25A/32A/SPARE', '25A/32A/SPARE', '25A/32A/SPARE', '25A/32A/SPARE']);
+    check('A-14 ways Q26 and Q27 were NOT touched - still 32 A',
+          ['PDU 1', 'PDU 6'].flatMap(p => ['Q26', 'Q27'].map(q => w(p, q).breaker)), ['32A', '32A', '32A', '32A']);
+    check('B-14 is on Q56 (Y) on both feeds now', 
+          M.build().cabinets.find(c => c.name === 'Cabin B-14').A.concat(M.build().cabinets.find(c => c.name === 'Cabin B-14').B)
+           .map(x => x.pdu + ' ' + x.q + ' ' + x.ph), ['PDU 3 Q56 Y', 'PDU 2 Q56 Y']);
+    check('  ... and was on Q55 (R) for a round before the work',
+          M.build('2026-08-16').cabinets.find(c => c.name === 'Cabin B-14').A.map(x => x.q + ' ' + x.ph), ['Q55 R']);
+    check('  ... matched either way, because both feeds moved together',
+          [M.build().cabinets.find(c => c.name === 'Cabin B-14').matched,
+           M.build('2026-08-16').cabinets.find(c => c.name === 'Cabin B-14').matched], [true, true]);
+    check('Q55 is released to spare, and names what it was',
+          ['PDU 3', 'PDU 2'].map(p => w(p, 'Q55').rack + '/' + w(p, 'Q55').was), ['SPARE/Cabin B-14', 'SPARE/Cabin B-14']);
+    check('the room is unchanged in size: 109 cabinets, 260 ways in service',
+          [M.build().cabinets.length,
+           Object.values(CFG.pduCircuits).flat().filter(x => !/spare/i.test(x.rack)).length], [109, 260]);
+}
+
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
 {
     const B = (I, plate) => { const t = M.tripBand(I, plate); return t ? t.band : null; };
@@ -471,7 +501,10 @@ section('Against the sheet, 2026-08-16');
     } catch (e) { console.log('  (sheet not reachable - skipped: ' + e.message + ')'); }
 
     if (rec) {
-        const { cabinets } = M.build();
+        /* the room as it stood on the day of the round, not as it stands
+           now: B-14 was on Q55 until 2026-10-16 and B-09's pair was 25 A,
+           and this round was read through those */
+        const { cabinets } = M.build('2026-08-16');
         const all = cabinets.map(c => M.analyse(c, rec));
         const tally = {};
         all.forEach(a => { tally[a.state] = (tally[a.state] || 0) + 1; });
@@ -507,9 +540,11 @@ section('Against the sheet, 2026-08-16');
         check('  ... UPS-2 at 55.1 %, ESMSB-2 at 76.1 %',
               [r1(e1.chain[3].pct), r1(e1.chain[4].pct)], [55.1, 76.1]);
         check('  ... PDU 6 incomer 127.6 A, High Load', [r1(e1.pdus[0].peak), e1.pdus[0].state], [127.6, 'high']);
-        check('  ... cabinets 101 / 5 / 1 / 0, 2 not read',
+        /* 117 cabinets on this date - the eight decommissioned in October
+           were still in the room and were read in this round */
+        check('  ... cabinets 109 / 5 / 1 / 0, 2 not read',
               [e1.cabinets.normal, e1.cabinets.high, e1.cabinets.critical, e1.cabinets.overload, e1.cabinets.missing],
-              [101, 5, 1, 0, 2]);
+              [109, 5, 1, 0, 2]);
         check('EMSB-2 lost: G-10 trips -> Overload', [e2.state, e2.cabinets.worst[0].res.cab.name], ['overload', 'Cabin G-10']);
         check('  ... transformer B 690 A, 32.3 %', [e2.chain[0].peak, r1(e2.chain[0].pct)], [690, 32.3]);
         [e1, e2].forEach(e => {
