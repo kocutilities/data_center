@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="PDU Diagrams">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=7fd73c8f">
-<script src="assets/js/auth.js?v=7fd73c8f"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=f54b4deb">
+<script src="assets/js/auth.js?v=f54b4deb"></script>
 <script>KOCAuth.require();</script>
 <style>
 .wrap { max-width: 1280px; }
@@ -194,6 +194,44 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
     .half.l .wrow > :nth-child(1) { order: 5; } .half.l .wrow > :nth-child(2) { order: 4; }
     .half.l .wrow > :nth-child(4) { order: 2; } .half.l .wrow > :nth-child(5) { order: 1; }
 }
+/* ---------- printing: the board alone, on white ---------- */
+.printhead { display: none; }
+@media print {
+    @page { size: A4 portrait; margin: 9mm 8mm; }
+    html, body { background: #fff !important; color: #000 !important; }
+    .sidebar, .topbar, .pdubar, .section-head, #status, #method, .rule-note, .mobile-bar,
+    .brand, .side-foot { display: none !important; }
+    .app { display: block !important; background: none !important; }
+    .main, .wrap { margin: 0 !important; padding: 0 !important; max-width: none !important;
+                   background: none !important; }
+    .section { border: 0 !important; background: none !important; box-shadow: none !important;
+               padding: 0 !important; margin: 0 0 6mm !important; }
+    .printhead { display: block; border-bottom: 1.2px solid #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+    .printhead h1 { font-size: 15pt; margin: 0 0 1mm; }
+    .printhead .sub { font-size: 8.5pt; color: #333; }
+    .printhead .prov { font-size: 7.5pt; color: #444; margin-top: 2mm; }
+    .inc { font-size: 7pt; color: #000; gap: 0.5mm 5mm; margin-top: 2mm; }
+    .inc .k { color: #555; }
+    .incbox { border-color: #000; background: none; font-size: 9pt; }
+    .incbox span { color: #555; }
+    /* the bar is a line down the middle of its column, not a filled column */
+    .bus { background: linear-gradient(#000, #000) center / 1.5px 100% no-repeat !important; }
+    .drop { background: #000 !important; }
+    /* tight enough that a 78-way board lands on one A4 page */
+    .wrow { font-size: 6.9pt; padding: 0.25mm 1mm; break-inside: avoid;
+            border-color: transparent !important; }
+    .wph { width: 15px; height: 13px; font-size: 6.4pt; }
+    .incwrap { margin-top: 1.5mm; }
+    .incbox { padding: 1.5mm 5mm; }
+    .wrow.loaded, .wrow.odd { background: none !important; }
+    .wrow.odd { outline: 0.4mm solid #000; }
+    .wname, .wq, .wbrk, .wamp { color: #000 !important; }
+    .wrow.spare .wname { color: #666 !important; }
+    .wph { border: 0.3mm solid #000; background: none !important; color: #000 !important; }
+    .half.l .wrow::after, .half.r .wrow::before { background: #000; }
+    a[href]::after { content: ''; }
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
 </style>
 </head>
 <body>
@@ -292,7 +330,20 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
                     <span class="spacer"></span>
                     <label for="date" style="margin:0">Readings from</label>
                     <select id="date" style="width:auto"></select>
+                    <button id="printBtn" class="btn-sm" type="button" title="Print this board, or save it as a PDF">
+                        <svg class="i" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z"/></svg>
+                        <span>Print / PDF</span>
+                    </button>
+                    <button id="csvBtn" class="btn-sm" type="button" title="Download this board as a spreadsheet">
+                        <svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>
+                        <span>CSV</span>
+                    </button>
+                    <button id="csvAllBtn" class="btn-sm" type="button" title="Download all eight boards as one spreadsheet">
+                        <svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16M4 3h4M16 3h4"/></svg>
+                        <span>CSV · all 8</span>
+                    </button>
                 </div>
+                <div class="printhead" id="printHead"></div>
                 <div class="pdubar" id="pduBar"></div>
                 <div class="field-note" id="status"></div>
                 <div id="head"></div>
@@ -313,10 +364,10 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=7fd73c8f"></script>
-<script src="assets/js/koc-criteria.js?v=7fd73c8f"></script>
-<script src="assets/js/cabinet-model.js?v=7fd73c8f"></script>
-<script src="assets/js/pdu-diagram.js?v=7fd73c8f"></script>
-<script src="assets/js/auth-ui.js?v=7fd73c8f"></script>
+<script src="assets/js/config.js?v=f54b4deb"></script>
+<script src="assets/js/koc-criteria.js?v=f54b4deb"></script>
+<script src="assets/js/cabinet-model.js?v=f54b4deb"></script>
+<script src="assets/js/pdu-diagram.js?v=f54b4deb"></script>
+<script src="assets/js/auth-ui.js?v=f54b4deb"></script>
 </body>
 </html>

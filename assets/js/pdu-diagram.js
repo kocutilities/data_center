@@ -230,6 +230,15 @@
             'B-09’s pair reads 25 A for a round before 16-10-2026 and 32 A after it.</li>' +
             '<li>A way nobody read shows a dash, never a zero.</li></ul>' +
 
+            '<h3>Taking it away</h3>' +
+            '<ul><li><b>Print / PDF</b> prints the board on its own, on white, with a title block naming the board, ' +
+            'the round and where the figures came from. Choose "Save as PDF" in the print dialog for a file. One ' +
+            'board at a time, as the tabs show it.</li>' +
+            '<li><b>CSV</b> downloads the same board as data — way, breaker, poles, phase, what it serves, and ' +
+            'what the round recorded. <b>CSV · all 8</b> does every board in one file, 564 rows.</li>' +
+            '<li>Both carry the reading date and the source, so a sheet or a file found later can still be ' +
+            'placed.</li></ul>' +
+
             '<h3>Reading the loading</h3>' +
             '<ul><li>The current shown is the busiest phase of that way in the round. The colour is that current ' +
             'against the way’s own continuous rating, 0.8 × plate (KOC-E-003 Pt 1 cl. 11.2.2), with the 15 % ' +
@@ -238,7 +247,76 @@
             'the <a href="cabinets.html">Cabinet Load</a> page, and that is the test that usually binds.</li></ul>';
     }
 
-    function render() { renderTabs(); renderHead(); renderBoard(); renderMethod(); }
+    /* ---------------------------------------------------------
+       taking it away: print, and the board as data
+
+       A printed board is the thing people carry to the floor, so it
+       prints without the furniture, on white, with a title block
+       saying which board, which round, and where the figures came
+       from - a sheet with no provenance on it is a sheet nobody can
+       check later.
+       --------------------------------------------------------- */
+
+    function renderPrintHead() {
+        var host = $('printHead');
+        if (!host) return;
+        host.innerHTML = '';
+        var e = equip(shown);
+        host.appendChild(el('h1', '', 'KOC Data Center  ·  ' + shown.replace('PDU ', 'PDU-')
+            + '  ·  single line diagram'));
+        host.appendChild(el('div', 'sub', 'Feed ' + DC_PDU_FEED[shown] + ', from ' + (e ? e.source : '—')
+            + '  ·  incomer ' + (e ? e.rated : '?') + ' A MCCB'
+            + '  ·  readings of ' + (shownDate ? dmy(shownDate) : 'no round loaded')));
+        host.appendChild(el('div', 'prov',
+            'Drawn from the circuit schedules held in the KOC Data Center electrical records app, which transcribe '
+            + 'the PDU single line diagrams. Cable sizes, RCBO sensitivities and breaker makes are on the drawings '
+            + 'only. Printed ' + dmy(new Date().toISOString().slice(0, 10)) + '.'));
+    }
+
+    function csvRows(name) {
+        var keep = shown;
+        shown = name;
+        var rows = (DC_CONFIG.pduCircuits[name] || []).map(wayOn).map(function (w) {
+            return [name, w.q, w.plate === null ? '' : w.plate, w.ph === '3' ? '4P' : 'DP',
+                    w.ph === '3' ? 'R+Y+B' : w.ph, w.rack, w.spare ? 'spare' : 'in service',
+                    w.I === null ? '' : w.I, w.pct === null ? '' : w.pct.toFixed(1),
+                    w.I === null ? 'not read' : w.state, w.odd ? 'spare way carrying current' : ''];
+        });
+        shown = keep;
+        return rows;
+    }
+
+    function download(filename, text) {
+        var blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function saveCsv(all) {
+        var head = ['PDU', 'Way', 'Breaker (A)', 'Poles', 'Phase', 'Serves', 'State',
+                    'Current (A)', '% of continuous', 'Loading', 'Note'];
+        var rows = all ? ORDER.reduce(function (acc, n) { return acc.concat(csvRows(n)); }, [])
+                       : csvRows(shown);
+        var esc = function (v) {
+            v = (v === null || v === undefined) ? '' : String(v);
+            return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+        };
+        var lines = [
+            ['KOC Data Center - PDU circuit schedule' + (all ? ', all eight boards' : ', ' + shown)],
+            ['Readings of', shownDate ? dmy(shownDate) : 'no round loaded'],
+            ['Exported', dmy(new Date().toISOString().slice(0, 10))],
+            ['Source', 'circuit schedules in the electrical records app, transcribed from the PDU single line diagrams'],
+            [],
+            head
+        ].concat(rows).map(function (r) { return r.map(esc).join(','); }).join('\r\n');
+        download('KOC DC ' + (all ? 'all PDUs' : shown) + ' schedule '
+            + (shownDate || 'no round') + '.csv', lines);
+    }
+
+    function render() { renderTabs(); renderPrintHead(); renderHead(); renderBoard(); renderMethod(); }
 
     /* ---------------------------------------------------------
        data
@@ -299,6 +377,9 @@
             try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* ignore */ }
         });
         $('date').addEventListener('change', function () { load($('date').value, false); });
+        $('printBtn').addEventListener('click', function () { window.print(); });
+        $('csvBtn').addEventListener('click', function () { saveCsv(false); });
+        $('csvAllBtn').addEventListener('click', function () { saveCsv(true); });
         /* #pdu=PDU%203 and #pdu=PDU+3 both mean PDU 3: decode before matching */
         var hash = '';
         try { hash = decodeURIComponent(location.hash || '').replace(/\+/g, ' '); } catch (e) { hash = location.hash || ''; }
