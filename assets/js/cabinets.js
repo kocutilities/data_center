@@ -769,8 +769,22 @@
                     t.appendChild(el('span', '', short(r.cab.name)));
                     if (withdrawn(r.cab)) t.classList.add('is-gone');
                     var g = govPct(r);
-                    t.appendChild(el('small', '', g === null ? '—' : pct(g).replace(' ', '')));
-                    t.title = r.cab.name + (withdrawn(r.cab) ? ' (decommissioned ' + ymd(r.cab.until) + ')' : '') + ' — ' + LABEL[st] +
+                    /* A cabinet with one feed read and one missing is not the
+                       same as one nobody read, and a bare dash made the two
+                       look identical - which reads as a contradiction next to
+                       the PDU diagram, where the way that WAS read shows its
+                       current. Say how much of the cabinet the round covered. */
+                    var ways = r.cab.A.length + r.cab.B.length;
+                    var missing = (r.unread || []).length;
+                    t.appendChild(el('small', '', g !== null ? pct(g).replace(' ', '')
+                        : missing && missing < ways ? (ways - missing) + '/' + ways + ' read'
+                        : '—'));
+                    t.title = r.cab.name + (withdrawn(r.cab) ? ' (decommissioned ' + ymd(r.cab.until) + ')' : '')
+                            + (missing && missing < ways
+                                ? ' — ' + LABEL[st] + ': ' + (ways - missing) + ' of ' + ways + ' ways read, '
+                                  + r.unread.map(function (w) { return w.pdu + ' ' + w.q; }).join(' and ')
+                                  + ' not read. The failover needs both feeds, so there is no status.'
+                                : ' — ' + LABEL[st]) +
                               (g === null ? '' : ', worst surviving breaker ' + pct(g) + ' of continuous' +
                                (scenario === 'pdu' ? '' : ' ' + CASE[scenario].when));
                     t.addEventListener('click', function () { reveal(r.cab.name); });
@@ -784,7 +798,9 @@
         var lg = $('legend');
         lg.innerHTML = '';
         [['normal', '≤ 87 % of continuous'], ['high', '87–100 %'], ['critical', 'above continuous, under the plate'],
-         ['overload', 'over the breaker’s own rating — may trip'], ['unread', 'not read']].forEach(function (x) {
+         ['overload', 'over the breaker’s own rating — may trip'],
+         ['incomplete', 'one feed read, the other not — no status'],
+         ['unread', 'neither feed read']].forEach(function (x) {
             var s = el('span'); s.appendChild(el('span', 'spill st-' + x[0], LABEL[x[0]]));
             s.appendChild(document.createTextNode(' ' + x[1])); lg.appendChild(s);
         });

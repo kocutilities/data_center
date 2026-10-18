@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Cabinets">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=f54b4deb">
-<script src="assets/js/auth.js?v=f54b4deb"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=5c01acce">
+<script src="assets/js/auth.js?v=5c01acce"></script>
 <script>KOCAuth.require();</script>
 <style>
 /* Four states plus two for missing data. Critical needs a colour of its own
@@ -24,6 +24,10 @@ html[data-theme="light"] { --crit: #ea580c; --crit-soft: rgba(234,88,12,.12); }
 .st-critical { --c: var(--crit); --cs: var(--crit-soft); }
 .st-overload { --c: var(--bad);  --cs: var(--bad-soft); }
 .st-unread, .st-incomplete { --c: var(--none); --cs: var(--surface-3); }
+/* half a cabinet read is not the same as none of it */
+.tile.st-incomplete { border-style: dashed; }
+.tile.st-incomplete small { font-size: 8.8px; letter-spacing: .01em; }
+.spill.st-incomplete { border-style: dashed; }
 /* the theme's amber is too pale to read as text on white */
 html[data-theme="light"] .st-high { --c: #b45309; }
 
@@ -495,11 +499,11 @@ a.flag:hover { text-decoration: underline; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=f54b4deb"></script>
-<script src="assets/js/koc-criteria.js?v=f54b4deb"></script>
-<script src="assets/js/system-model.js?v=f54b4deb"></script>
-<script src="assets/js/cabinet-model.js?v=f54b4deb"></script>
-<script src="assets/js/cabinets.js?v=f54b4deb"></script>
-<script src="assets/js/auth-ui.js?v=f54b4deb"></script>
+<script src="assets/js/config.js?v=5c01acce"></script>
+<script src="assets/js/koc-criteria.js?v=5c01acce"></script>
+<script src="assets/js/system-model.js?v=5c01acce"></script>
+<script src="assets/js/cabinet-model.js?v=5c01acce"></script>
+<script src="assets/js/cabinets.js?v=5c01acce"></script>
+<script src="assets/js/auth-ui.js?v=5c01acce"></script>
 </body>
 </html>
