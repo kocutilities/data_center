@@ -695,7 +695,7 @@ var DC_CABINETS = (function () {
 
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
-        spareOn: spareOn, breakerOn: breakerOn,
+        spareOn: spareOn, breakerOn: breakerOn, rackOn: rackOn,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
         tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,
