@@ -146,11 +146,12 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 
 /* the board: two mirrored halves either side of the busbar, as the sheet draws it */
 .incwrap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-            grid-template-areas: ". box phases" ". drop ."; margin-top: 8px; }
+            grid-template-areas: "phases phases phases" ". box ." ". drop ."; margin-top: 8px; }
 .incbox { grid-area: box; }
 .drop   { grid-area: drop; justify-self: center; }
-/* the three phases, beside the incomer they were measured at */
-.phases { grid-area: phases; justify-self: start; margin-left: 20px; min-width: 250px;
+/* the three phases, above the incomer they were measured at, on the same
+   centre line as the board below */
+.phases { grid-area: phases; justify-self: center; margin: 0 0 16px; min-width: 250px;
           border: 1px solid var(--border); border-radius: 9px; padding: 6px 11px 7px;
           background: var(--surface-2); }
 .phases .pk { font-size: 10.2px; letter-spacing: .085em; text-transform: uppercase;
@@ -209,8 +210,8 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 .wrow.odd { border-color: rgba(251,191,36,.45); background: var(--warn-soft); }
 .wrow.odd .wname { color: var(--warn); font-style: normal; }
 @media screen and (max-width: 860px) {
-    .incwrap { grid-template-columns: 1fr; grid-template-areas: "box" "phases" "drop"; }
-    .phases { justify-self: stretch; margin: 10px 0 0; min-width: 0; }
+    .incwrap { grid-template-columns: 1fr; grid-template-areas: "phases" "box" "drop"; }
+    .phases { justify-self: stretch; margin: 0 0 12px; min-width: 0; }
     .board { grid-template-columns: 1fr; }
     .bus { display: none; }
     .half.r .wrow { grid-template-columns: 34px 52px 26px 58px 1fr; }
@@ -244,7 +245,6 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
        whole thing costs 44 mm of page. Across the full 194 mm each line
        fits once and it costs 17 mm, and the incomer box stays centred on
        the bus, which is what makes the sheet read as a diagram. */
-    .incwrap { grid-template-areas: "phases phases phases" ". box ." ". drop ."; }
     .phases { border-color: #000; background: none; justify-self: stretch;
               margin: 0 0 3.5mm; min-width: 0; max-width: none;
               padding: 1.5mm 3mm 2mm; }
