@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="PDU Diagrams">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/theme.css?v=5c01acce">
-<script src="assets/js/auth.js?v=5c01acce"></script>
+<link rel="stylesheet" href="assets/css/theme.css?v=b74cc049">
+<script src="assets/js/auth.js?v=b74cc049"></script>
 <script>KOCAuth.require();</script>
 <style>
 .wrap { max-width: 1280px; }
@@ -145,7 +145,30 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 .inc b { font-variant-numeric: tabular-nums; }
 
 /* the board: two mirrored halves either side of the busbar, as the sheet draws it */
-.incwrap { display: grid; place-items: center; margin-top: 8px; }
+.incwrap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+            grid-template-areas: ". box phases" ". drop ."; margin-top: 8px; }
+.incbox { grid-area: box; }
+.drop   { grid-area: drop; justify-self: center; }
+/* the three phases, beside the incomer they were measured at */
+.phases { grid-area: phases; justify-self: start; margin-left: 20px; min-width: 250px;
+          border: 1px solid var(--border); border-radius: 9px; padding: 6px 11px 7px;
+          background: var(--surface-2); }
+.phases .pk { font-size: 10.2px; letter-spacing: .085em; text-transform: uppercase;
+              color: var(--text-faint); margin-bottom: 4px; }
+.pgrid { display: grid; grid-template-columns: 22px auto auto auto; gap: 2px 9px;
+         align-items: center; font-variant-numeric: tabular-nums; }
+.pgrid .pv { font-size: 12.4px; font-weight: 650; }
+.pgrid .pp { font-size: 11px; color: var(--text-dim); }
+.pgrid .ps { font-size: 11px; color: var(--text-faint); }
+.pfoot { margin-top: 3px; font-size: 9.6px; letter-spacing: .02em; color: var(--text-faint); }
+.pub { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border); font-size: 11px; }
+.pub b { font-weight: 650; }
+.pub .dim { color: var(--text-faint); }
+.pub .warn { color: var(--warn); }
+.pub .bad { color: var(--bad); }
+.pnote { margin-top: 2px; font-size: 10px; color: var(--text-faint); }
+/* the same figures as a sentence, for the print sheet only */
+.phprint { display: none; }
 .incbox { border: 1.5px solid var(--border-strong); border-radius: 9px; padding: 7px 16px; background: var(--surface-2);
           font-size: 12.6px; font-weight: 620; text-align: center; }
 .incbox span { display: block; font-size: 10.8px; font-weight: 500; color: var(--text-faint); }
@@ -186,6 +209,8 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
 .wrow.odd { border-color: rgba(251,191,36,.45); background: var(--warn-soft); }
 .wrow.odd .wname { color: var(--warn); font-style: normal; }
 @media (max-width: 860px) {
+    .incwrap { grid-template-columns: 1fr; grid-template-areas: "box" "phases" "drop"; }
+    .phases { justify-self: stretch; margin: 10px 0 0; min-width: 0; }
     .board { grid-template-columns: 1fr; }
     .bus { display: none; }
     .half.r .wrow { grid-template-columns: 34px 52px 26px 58px 1fr; }
@@ -213,12 +238,19 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
     .inc { font-size: 7pt; color: #000; gap: 0.5mm 5mm; margin-top: 2mm; }
     .inc .k { color: #555; }
     .incbox { border-color: #000; background: none; font-size: 9pt; }
+    /* the panel as a box costs 30 mm of a page that has none spare, so on
+       paper the same figures run as one sentence beside the incomer */
+    .phases { border: 0; background: none; padding: 0; margin-left: 7mm; min-width: 0;
+              max-width: 98mm; }
+    .phases .pk, .pgrid, .pfoot, .pub, .pnote { display: none !important; }
+    .phprint { display: block; font-size: 6.9pt; line-height: 1.45; color: #000;
+               font-variant-numeric: tabular-nums; }
     .incbox span { color: #555; }
     /* the bar is a line down the middle of its column, not a filled column */
     .bus { background: linear-gradient(#000, #000) center / 1.5px 100% no-repeat !important; }
     .drop { background: #000 !important; }
     /* tight enough that a 78-way board lands on one A4 page */
-    .wrow { font-size: 6.9pt; padding: 0.25mm 1mm; break-inside: avoid;
+    .wrow { font-size: 6.9pt; padding: 0.15mm 1mm; break-inside: avoid;
             border-color: transparent !important; }
     .wph { width: 15px; height: 13px; font-size: 6.4pt; }
     .incwrap { margin-top: 1.5mm; }
@@ -364,10 +396,10 @@ html[data-theme="light"] .cfg-row .tmp { color: #b45309; }
     </main>
 </div>
 
-<script src="assets/js/config.js?v=5c01acce"></script>
-<script src="assets/js/koc-criteria.js?v=5c01acce"></script>
-<script src="assets/js/cabinet-model.js?v=5c01acce"></script>
-<script src="assets/js/pdu-diagram.js?v=5c01acce"></script>
-<script src="assets/js/auth-ui.js?v=5c01acce"></script>
+<script src="assets/js/config.js?v=b74cc049"></script>
+<script src="assets/js/koc-criteria.js?v=b74cc049"></script>
+<script src="assets/js/cabinet-model.js?v=b74cc049"></script>
+<script src="assets/js/pdu-diagram.js?v=b74cc049"></script>
+<script src="assets/js/auth-ui.js?v=b74cc049"></script>
 </body>
 </html>

@@ -73,11 +73,13 @@
         var plate = plateOf(breaker);
         var r = rec['PDU|' + shown + '|' + c.c] || null;
         var phases = c.ph === '3' ? ['r', 'y', 'b'] : [String(c.ph).toLowerCase()];
-        var I = null;
+        var I = null, byPhase = { r: null, y: null, b: null };
         if (r) {
             var vals = phases.map(function (p) {
                 var v = r[p];
-                return (v === '' || v === null || v === undefined || !isFinite(Number(v))) ? null : Number(v);
+                v = (v === '' || v === null || v === undefined || !isFinite(Number(v))) ? null : Number(v);
+                byPhase[p] = v;
+                return v;
             });
             if (vals.some(function (v) { return v !== null; })) {
                 I = Math.max.apply(null, vals.map(function (v) { return v === null ? 0 : v; }));
@@ -85,6 +87,7 @@
         }
         return {
             q: c.c, ph: c.ph, breaker: breaker, plate: plate, spare: spare,
+            byPhase: byPhase,
             rack: M.rackOn(c, shownDate),
             I: I,
             /* a way the schedule calls spare but the round found carrying
@@ -140,9 +143,152 @@
         add('Incomer', (e ? e.rated : '—') + ' A MCCB  ·  continuous ' + fmt(cont, 1) + ' A');
         add('Incoming cable', e && e.cable ? e.cable : 'not on file');
         add('Ways', ways.length + '  ·  ' + live + ' in service, ' + (ways.length - live) + ' spare');
-        add('Incomer carrying', peak === null ? 'not read'
+        add('Busiest phase', peak === null ? 'not read'
             : fmt(peak, 1) + ' A  ·  ' + fmt(peak / cont * 100, 1) + ' % of continuous');
         host.appendChild(g);
+    }
+
+    /* ---------------------------------------------------------
+       R, Y and B on the board itself
+
+       Two different numbers, and the difference between them is the
+       point. The incomer reading is what the board is carrying, phase by
+       phase, measured at the MCCB. The figures beside it are the same
+       three phases added up from the ways that were read.
+
+       They are not expected to agree, in either direction. Below, because
+       a way nobody read adds nothing, so the sum is a floor while the
+       round is incomplete. Above, because the ways are added arithmetically
+       while the incomer carries their vector sum - loads at different power
+       factors and with different harmonic content do not add head to head,
+       so a fully read board can sum higher than its own incomer. PDU-1 on
+       17-10-2026 does exactly that on B: 31.7 A of ways against 28.7 A
+       measured. Neither is wrong.
+
+       Unbalance is the NEMA form - greatest deviation from the mean of
+       the three, in either direction - which is what unbalanceReview()
+       in assessment.js has always computed, with the same 5 A floor and
+       the same thresholds out of koc-criteria.js. Deliberately the same
+       arithmetic in both places, so the app cannot quote two different
+       unbalance figures for one board.
+
+       Worth knowing: the Phase unbalance section was taken off the
+       Power System Assessment page on 2026-09-10, so this line is now
+       the only place the figure is shown. It stays advisory - KOC sets
+       no unbalance limit for boards, feeders or cables, only 8 %
+       negative sequence on generators (KOC-E-007 cl. 11.1.8).
+       --------------------------------------------------------- */
+
+    var PH = ['r', 'y', 'b'];
+    var UNBALANCE_FLOOR = 5;    /* amperes, mean of the three, as assessment.js has it */
+
+    function incomerPhases() {
+        var r = rec['Main|' + shown + '|'];
+        if (!r) return null;
+        var v = PH.map(function (p) {
+            var x = r[p];
+            return (x === '' || x === null || x === undefined || !isFinite(Number(x))) ? null : Number(x);
+        });
+        return v.every(function (x) { return x === null; }) ? null : v;
+    }
+
+    function waySums(ways) {
+        var sum = { r: 0, y: 0, b: 0 }, read = 0;
+        ways.forEach(function (w) {
+            if (w.I === null) return;
+            read++;
+            PH.forEach(function (p) { if (w.byPhase[p] !== null) { sum[p] += w.byPhase[p]; } });
+        });
+        return { sum: sum, read: read, total: ways.length };
+    }
+
+    function unbalanceOf(v) {
+        if (!v || v.some(function (x) { return x === null; })) return null;
+        var avg = (v[0] + v[1] + v[2]) / 3;
+        if (avg < UNBALANCE_FLOOR) return null;
+        var dev = Math.max(Math.abs(v[0] - avg), Math.abs(v[1] - avg), Math.abs(v[2] - avg));
+        return dev / avg * 100;
+    }
+
+    function phasePanel(ways) {
+        var e = equip(shown);
+        var cont = e ? e.rated * M.CONT : null;
+        var inc = incomerPhases();
+        var tot = waySums(ways);
+
+        var panel = el('div', 'phases');
+        panel.appendChild(el('div', 'pk', 'Incomer current' + (shownDate ? ', ' + dmy(shownDate) : '')));
+
+        var grid = el('div', 'pgrid');
+        PH.forEach(function (p, i) {
+            var P = p.toUpperCase();
+            var val = inc ? inc[i] : null;
+            var sum = tot.sum[p];
+            var row = [
+                el('span', 'wph ph-' + P, P),
+                el('span', 'pv', val === null ? '—' : fmt(val, 1) + ' A'),
+                el('span', 'pp', (val === null || !cont) ? '' : fmt(val / cont * 100, 1) + ' %'),
+                el('span', 'ps', tot.read ? fmt(sum, 1) + ' A' : '—')
+            ];
+            row.forEach(function (c) { grid.appendChild(c); });
+        });
+        panel.appendChild(grid);
+        panel.appendChild(el('div', 'pfoot', 'measured  ·  % of continuous  ·  ways read add to'));
+
+        var ub = unbalanceOf(inc);
+        var tail = el('div', 'pub');
+        if (inc === null) {
+            tail.appendChild(el('span', 'dim', 'Incomer not read'
+                + (shownDate ? ' on ' + dmy(shownDate) : '') + '.'));
+        } else if (ub !== null) {
+            var cls = ub >= KOC.advisory.phaseUnbalance.red * 100 ? 'bad'
+                    : ub >= KOC.advisory.phaseUnbalance.amber * 100 ? 'warn' : 'dim';
+            var u = el('b', cls, 'Unbalance ' + fmt(ub, 1) + ' %');
+            u.title = 'Greatest deviation from the mean of the three phases, as a percentage of it '
+                + '(the NEMA form, the same arithmetic assessment.js uses). Advisory only: no KOC standard '
+                + 'sets a phase unbalance limit for boards, feeders or cables — the one real limit is '
+                + '8 % negative sequence on generators, KOC-E-007 cl. 11.1.8. Amber at 10 %, red at 20 %.';
+            tail.appendChild(u);
+            tail.appendChild(el('span', 'dim', '  ·  advisory'));
+        } else {
+            tail.appendChild(el('span', 'dim', 'Too lightly loaded to judge unbalance'));
+        }
+        panel.appendChild(tail);
+
+        panel.appendChild(el('div', 'pnote', tot.read + ' of ' + tot.total + ' ways read'
+            + (tot.read < tot.total
+                ? ' — an unread way adds nothing, so the sum is a floor'
+                : ' — the sum is arithmetic, the incomer carries the vector sum')));
+
+        /* The same figures as a sentence. The printed board is budgeted to
+           one A4 page and the panel as a box costs 30 mm of it, which is
+           more than the page has spare - so on paper the box is replaced
+           by this line, which costs about 6 mm and says the same things,
+           tier included, since print is black and white. */
+        var say = [];
+        if (inc === null) {
+            say.push('Incomer not read' + (shownDate ? ' on ' + dmy(shownDate) : '') + '.');
+        } else {
+            say.push('Incomer' + (shownDate ? ', ' + dmy(shownDate) : '') + ': '
+                + PH.map(function (p, i) {
+                    return p.toUpperCase() + ' ' + fmt(inc[i], 1) + ' A'
+                        + (cont ? ' (' + fmt(inc[i] / cont * 100, 1) + ' %)' : '');
+                }).join('  ·  ') + ' of continuous.');
+            if (ub !== null) {
+                say.push('Unbalance ' + fmt(ub, 1) + ' %, advisory'
+                    + (ub >= KOC.advisory.phaseUnbalance.red * 100 ? ', above the 20 % practice threshold'
+                     : ub >= KOC.advisory.phaseUnbalance.amber * 100 ? ', above the 10 % practice threshold'
+                     : '') + '.');
+            }
+        }
+        if (tot.read) {
+            say.push('Ways read (' + tot.read + ' of ' + tot.total + ') add to '
+                + PH.map(function (p) { return p.toUpperCase() + ' ' + fmt(tot.sum[p], 1); }).join(' · ')
+                + ' A, an arithmetic sum'
+                + (tot.read < tot.total ? ' and a floor while ways are unread' : '') + '.');
+        }
+        panel.appendChild(el('div', 'phprint', say.join('  ')));
+        return panel;
     }
 
     function wayRow(w, side) {
@@ -178,6 +324,7 @@
         box.appendChild(el('span', '', 'from ' + (e ? e.source : '—')
             + (e && e.cableAt ? ', ' + e.cableAt : '')));
         wrap.appendChild(box);
+        wrap.appendChild(phasePanel(ways));
         wrap.appendChild(el('div', 'drop'));
         host.appendChild(wrap);
 
@@ -244,7 +391,31 @@
             'against the way’s own continuous rating, 0.8 × plate (KOC-E-003 Pt 1 cl. 11.2.2), with the 15 % ' +
             'spare level at 87 % of it (cl. 9.4.1(a)).</li>' +
             '<li>This is each way on its own. What a cabinet’s breaker would carry if its other feed is lost is ' +
-            'the <a href="cabinets.html">Cabinet Load</a> page, and that is the test that usually binds.</li></ul>';
+            'the <a href="cabinets.html">Cabinet Load</a> page, and that is the test that usually binds.</li></ul>' +
+
+            '<h3>The three phases, beside the incomer</h3>' +
+            '<ul><li><b>Measured</b> is R, Y and B as the round recorded them at the incomer — the board’s ' +
+            'total on each phase, which is what the transformer and the EMSB above it actually see.</li>' +
+            '<li><b>% of continuous</b> is each phase against the incomer’s own continuous rating, ' +
+            '0.8 × the MCCB plate.</li>' +
+            '<li><b>Ways read add to</b> is the same three phases summed from the ways below. ' +
+            '<b>It is not expected to equal the measured figure, in either direction.</b> It falls short while ' +
+            'ways are unread, because a way nobody read adds nothing — so on an incomplete round it is a ' +
+            'floor, and the shortfall measures how much of the board the round covered. It can also sit ' +
+            '<i>above</i> the measured figure on a fully read board, because the ways are added arithmetically ' +
+            'while the incomer carries their vector sum: loads at different power factors and with different ' +
+            'harmonic content do not add head to head. Read it as a sense check on coverage, not as a balance ' +
+            'that has to close.</li>' +
+            '<li><b>Unbalance</b> is the greatest deviation from the mean of the three, as a percentage of ' +
+            'it — the NEMA form, which is the arithmetic the app has always used, with the same 5 A floor ' +
+            'and the same thresholds. Nothing is reported below a 5 A mean, where a percentage on a near-zero ' +
+            'load is arithmetic noise rather than a finding.</li>' +
+            '<li>It is <b>advisory</b>: no KOC standard sets a phase unbalance limit for boards, feeders or ' +
+            'cables. The one real limit is 8 % negative sequence on generators, KOC-E-007 cl. 11.1.8. Amber at ' +
+            '10 %, red at 20 %, by general practice only. Unbalance still bites indirectly — every rating is ' +
+            'judged against the <em>highest</em> phase, so an unbalanced board reaches its limit sooner.</li>' +
+            '<li>The Phase unbalance section was taken off the Power System Assessment page on 10-09-2026, so ' +
+            'this is now the only place in the app the figure appears.</li></ul>';
     }
 
     /* ---------------------------------------------------------
