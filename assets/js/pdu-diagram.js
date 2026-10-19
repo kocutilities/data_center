@@ -233,7 +233,8 @@
             row.forEach(function (c) { grid.appendChild(c); });
         });
         panel.appendChild(grid);
-        panel.appendChild(el('div', 'pfoot', 'measured  ·  % of continuous  ·  ways read add to'));
+        panel.appendChild(el('div', 'pfoot',
+            'each phase:  measured  ·  % of continuous  ·  ways read add to'));
 
         var ub = unbalanceOf(inc);
         var tail = el('div', 'pub');
@@ -250,6 +251,12 @@
                 + '8 % negative sequence on generators, KOC-E-007 cl. 11.1.8. Amber at 10 %, red at 20 %.';
             tail.appendChild(u);
             tail.appendChild(el('span', 'dim', '  ·  advisory'));
+            /* the printed sheet is black and white, so the amber/red tier
+               cannot travel as a colour there - it travels as words */
+            if (cls !== 'dim') {
+                tail.appendChild(el('span', 'ptier', ', above the '
+                    + (cls === 'bad' ? '20' : '10') + ' % practice threshold'));
+            }
         } else {
             tail.appendChild(el('span', 'dim', 'Too lightly loaded to judge unbalance'));
         }
@@ -260,34 +267,6 @@
                 ? ' — an unread way adds nothing, so the sum is a floor'
                 : ' — the sum is arithmetic, the incomer carries the vector sum')));
 
-        /* The same figures as a sentence. The printed board is budgeted to
-           one A4 page and the panel as a box costs 30 mm of it, which is
-           more than the page has spare - so on paper the box is replaced
-           by this line, which costs about 6 mm and says the same things,
-           tier included, since print is black and white. */
-        var say = [];
-        if (inc === null) {
-            say.push('Incomer not read' + (shownDate ? ' on ' + dmy(shownDate) : '') + '.');
-        } else {
-            say.push('Incomer' + (shownDate ? ', ' + dmy(shownDate) : '') + ': '
-                + PH.map(function (p, i) {
-                    return p.toUpperCase() + ' ' + fmt(inc[i], 1) + ' A'
-                        + (cont ? ' (' + fmt(inc[i] / cont * 100, 1) + ' %)' : '');
-                }).join('  ·  ') + ' of continuous.');
-            if (ub !== null) {
-                say.push('Unbalance ' + fmt(ub, 1) + ' %, advisory'
-                    + (ub >= KOC.advisory.phaseUnbalance.red * 100 ? ', above the 20 % practice threshold'
-                     : ub >= KOC.advisory.phaseUnbalance.amber * 100 ? ', above the 10 % practice threshold'
-                     : '') + '.');
-            }
-        }
-        if (tot.read) {
-            say.push('Ways read (' + tot.read + ' of ' + tot.total + ') add to '
-                + PH.map(function (p) { return p.toUpperCase() + ' ' + fmt(tot.sum[p], 1); }).join(' · ')
-                + ' A, an arithmetic sum'
-                + (tot.read < tot.total ? ' and a floor while ways are unread' : '') + '.');
-        }
-        panel.appendChild(el('div', 'phprint', say.join('  ')));
         return panel;
     }
 
