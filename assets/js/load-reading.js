@@ -153,13 +153,25 @@
        row construction
        --------------------------------------------------------- */
 
+    /* A spare is any way whose label carries the word, wherever the drawing
+       puts it - "SPARE", "SPARE IND. SOCKET", "SPARE Cabin C-03" and
+       "Cabin G-10 SPARE" are all spares. None of them is a circuit anyone
+       goes out to read.
+
+       This used to be two different tests. The row styling matched on the
+       prefix while the totals matched anywhere, so the 33 ways whose label
+       ENDS with the word - "Cabin A-08 SPARE" and the rest of the
+       decommissioned cabinets - were counted as spare but drawn as live.
+       One definition now, used by both. */
+    function isSpare(rack) {
+        return /SPARE/i.test(rack || '');
+    }
+
     function buildRow(item) {
         var row = el('div', 'row');
         row.dataset.key = item.key;
-        /* A spare way has nothing connected - still recordable, just quiet.
-           Matched on the prefix, because the drawings qualify some of them:
-           "SPARE IND. SOCKET" is still a spare and should read as one. */
-        if ((item.rack || '').toUpperCase().indexOf('SPARE') === 0) row.classList.add('is-spare');
+        /* a spare has nothing connected - still recordable, just quiet */
+        if (isSpare(item.rack)) row.classList.add('is-spare');
 
         var cn = el('div', 'cell-n');
         cn.appendChild(el('div', 'row-name', item.name));
@@ -514,13 +526,8 @@
        totals
        --------------------------------------------------------- */
 
-    /* A spare is any way whose label carries the word, however the drawing
-       qualifies it - "SPARE", "SPARE IND. SOCKET", "SPARE Cabin C-03",
-       "Cabin G-10 SPARE". None of them is a circuit anyone goes out to read,
-       so counting them in the target only ever made the day look unfinished. */
-    function isSpare(rack) {
-        return /SPARE/i.test(rack || '');
-    }
+    /* isSpare is defined above, with the row that uses it. Counting spares
+       in the day's target only ever made the day look unfinished. */
 
     function pduCounts() {
         var active = 0, spare = 0;
