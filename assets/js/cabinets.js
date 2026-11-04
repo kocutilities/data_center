@@ -24,7 +24,16 @@
     var results = [];
     var pairs   = [];
     var emsb    = {};
+    /* Two dates, as on the PDU Diagrams page. roomDate is the day the
+       ROOM is drawn for - null meaning "as the schedules stand now" -
+       while shownDate is the round whose readings are being assessed.
+       They are equal whenever a round is picked. They differ on "As drawn
+       now", because the drawings move between rounds: A-10 was back in
+       the room on 2026-11-04 while the newest round was 17-10-2026, and
+       with a single date the map simply could not show it. */
+    var roomDate = null;
     var shownDate = null;
+    var latest = null;
 
     /* Which failure the summary, map and table are showing: 'pdu' is the
        worst of either PDU failing; 'A' / 'B' is that whole feed lost, as
@@ -100,8 +109,12 @@
     function fillDates(dates, chosen) {
         var sel = $('date');
         var list = (dates || []).slice().sort().reverse();
-        if (list.indexOf(chosen) === -1) list.unshift(chosen);
+        if (chosen !== 'now' && list.indexOf(chosen) === -1) list.unshift(chosen);
         sel.innerHTML = '';
+        var sd = M.scheduleDate();
+        var now = el('option', '', 'As drawn now' + (sd ? '  \u00b7  ' + ymd(sd) : ''));
+        now.value = 'now';
+        sel.appendChild(now);
         list.forEach(function (d) {
             var o = el('option', '', ymd(d));
             o.value = d;
@@ -112,26 +125,40 @@
 
     /* auto = opened fresh, so follow the sheet to its latest date */
     function load(date, auto) {
+        var asNow = (date === 'now');
         if (!endpointUrl()) { setStatus('No sheet connected on this device.'); return; }
-        setStatus('Reading ' + ymd(date) + ' from the sheet…', true);
+        /* "As drawn now" assesses the newest round's readings against the
+           room as it stands today, so it still fetches that round */
+        var want = asNow ? (latest || new Date().toISOString().slice(0, 10)) : date;
+        setStatus('Reading ' + ymd(want) + ' from the sheet…', true);
 
-        ask(date).then(function (d) {
-            if (auto && d.latest && d.latest !== date) {
+        ask(want).then(function (d) {
+            if (d.latest) latest = d.latest;
+            if ((auto || asNow) && d.latest && d.latest !== want) {
                 try { localStorage.setItem(LATEST_KEY, d.latest); } catch (e) { /* ignore */ }
-                return load(d.latest, false);
+                return load(asNow ? 'now' : d.latest, false);
             }
-            shownDate = date;
-            fillDates(d.dates, date);
+            shownDate = want;
+            roomDate = asNow ? null : want;
+            fillDates(d.dates, asNow ? 'now' : want);
             var rec = d.recorded || {};
             /* the room as it stood on the date being shown: a cabinet
                decommissioned since then was there, was read, and belongs
-               in that round's figures */
-            built = M.build(date);
+               in that round's figures. On "as drawn now" the room is the
+               one the drawings describe today, and a cabinet installed
+               since the round simply has nothing read against it yet. */
+            built = M.build(roomDate);
             results = built.cabinets.map(function (c) { return M.analyse(c, rec); });
             pairs = M.pduPairs(rec);
             emsb = { 'EMSB 1': M.emsbLoss(rec, results, 'EMSB 1'),
                      'EMSB 2': M.emsbLoss(rec, results, 'EMSB 2') };
-            setStatus(Object.keys(rec).length + ' readings recorded for ' + ymd(date));
+            var sd = M.scheduleDate();
+            setStatus(asNow
+                ? built.cabinets.length + ' cabinets as the drawings have them'
+                  + (sd ? ', last changed ' + ymd(sd) : '')
+                  + ' — readings from the round of ' + ymd(want)
+                  + (sd && sd > want ? ', which is older than the drawings' : '')
+                : Object.keys(rec).length + ' readings recorded for ' + ymd(want));
             render();
         }).catch(function (e) {
             console.error('Cabinet load failed:', e);
@@ -1017,6 +1044,16 @@
         var n = $('notes');
         var single = built.singleFed.map(function (c) { return esc(c.name) + ' (' + c.A.concat(c.B)[0].pdu + ')'; });
         n.innerHTML =
+            '<h3>Two dates, not one</h3>' +
+            '<ul><li><b>As drawn now</b> — the default — maps the room as the <b>drawings</b> have it today '
+            + 'and assesses the <b>newest round</b> against it. Those are different dates whenever a drawing '
+            + 'has been re-issued since the last round, which is usual: A-10 came back into the room on '
+            + '04-11-2026 while the newest round was still 17-10-2026.</li>' +
+            '<li><b>Pick a round instead</b> and the room is rebuilt <b>as it stood that day</b>, so a cabinet '
+            + 'withdrawn since is mapped with it in and judged on what it was actually carrying.</li>' +
+            '<li>A cabinet added since the round shows <b>Not read</b> rather than a status — there is nothing '
+            + 'yet to judge it on. A-10 reads that way until the first round after 04-11-2026.</li></ul>' +
+
             '<h3>Breaker limits — the same basis as the Power System Assessment</h3>' +
             '<ul><li><b>Continuous rating = 0.8 × the breaker plate</b>, KOC-E-003 Pt 1 cl. 11.2.2. On the bars, ' +
             'the tick marks it.</li>' +
@@ -1124,8 +1161,8 @@
             b.addEventListener('click', function () { setCase(b.getAttribute('data-case')); });
         });
 
-        var start; try { start = localStorage.getItem(LATEST_KEY); } catch (e) { start = null; }
-        load(start || new Date().toISOString().slice(0, 10), true);
+        try { latest = localStorage.getItem(LATEST_KEY); } catch (e) { latest = null; }
+        load('now', true);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

@@ -150,6 +150,25 @@ var DC_CABINETS = (function () {
             ? c.prevBreaker : c.breaker;
     }
 
+    /* The day the schedules themselves last changed - the newest dated
+       field anywhere in them. That is what "as drawn now" means on the
+       pages, and it is read from the data rather than written down, so it
+       follows the next revision without anyone remembering to update it. */
+    function scheduleDate() {
+        var newest = '';
+        Object.keys(DC_CONFIG.pduCircuits).forEach(function (pdu) {
+            DC_CONFIG.pduCircuits[pdu].forEach(function (c) {
+                [c.until, c.from, c.breakerSince].forEach(function (d) {
+                    if (d && d > newest) newest = d;
+                });
+                (c.spells || []).forEach(function (s) {
+                    if (s.from && s.from > newest) newest = s.from;
+                });
+            });
+        });
+        return newest || null;
+    }
+
     function build(asOf) {
         var byName = {};
         Object.keys(DC_CONFIG.pduCircuits).forEach(function (pdu) {
@@ -724,7 +743,7 @@ var DC_CABINETS = (function () {
 
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
-        spareOn: spareOn, spellOn: spellOn, breakerOn: breakerOn, rackOn: rackOn,
+        spareOn: spareOn, spellOn: spellOn, scheduleDate: scheduleDate, breakerOn: breakerOn, rackOn: rackOn,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
         tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,

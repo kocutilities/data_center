@@ -47,22 +47,8 @@
     var readDate = null;
     var latest = null;        /* newest round the sheet reports */
 
-    /* The day the schedules themselves last changed, which is what "as
-       drawn now" means and what the picker shows beside it. */
-    function scheduleDate() {
-        var newest = '';
-        Object.keys(DC_CONFIG.pduCircuits).forEach(function (p) {
-            DC_CONFIG.pduCircuits[p].forEach(function (c) {
-                [c.until, c.from, c.breakerSince].forEach(function (d) {
-                    if (d && d > newest) newest = d;
-                });
-                (c.spells || []).forEach(function (sp) {
-                    if (sp.from && sp.from > newest) newest = sp.from;
-                });
-            });
-        });
-        return newest || null;
-    }
+    /* what "as drawn now" means; the model works it out from the data */
+    function scheduleDate() { return M.scheduleDate(); }
 
     function $(id) { return document.getElementById(id); }
     function el(tag, cls, text) {
