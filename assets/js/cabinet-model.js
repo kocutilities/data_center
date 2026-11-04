@@ -94,7 +94,32 @@ var DC_CABINETS = (function () {
 
        build() with no date is today's room, which is what every page that
        is about the present asks for. */
+    /* A way that has changed hands more than once carries its spells:
+       what it was, from when, oldest first.
+
+       until / from / was encode a SINGLE transition. That covers 54 of
+       the 564 ways and reads well in the schedule, so they stay. A way
+       needing more than one cannot be written that way at all: PDU-1 Q12
+       served A-10, went spare when A-10 was decommissioned on 2026-10-04,
+       and came back into service on 2026-11-04 for the new A-10. Given
+       only `from` it would read as spare for the August round too, which
+       it was not - and the August round is read way by way.
+
+       The last spell is the way as it stands today, so it has to agree
+       with the way's own rack. test_cabinet_model checks that it does. */
+    function spellOn(c, asOf) {
+        if (!c.spells || !c.spells.length) return null;
+        var pick = c.spells[0];
+        for (var i = 1; i < c.spells.length; i++) {
+            var s = c.spells[i];
+            if (!asOf || !s.from || s.from <= asOf) pick = s;
+        }
+        return pick;
+    }
+
     function spareOn(c, asOf) {
+        var spell = spellOn(c, asOf);
+        if (spell) return isSpare(spell.rack);
         var sp = isSpare(c.rack);
         if (!asOf) return sp;
         if (sp && c.until && asOf < c.until) return false;   /* still in service then */
@@ -107,6 +132,8 @@ var DC_CABINETS = (function () {
        `was` where the drawing no longer names the cabinet at all - PDU-3
        Q55 is drawn a plain SPARE since B-14 moved to Q56 on 2026-10-16. */
     function rackOn(c, asOf) {
+        var spell = spellOn(c, asOf);
+        if (spell) return spell.rack;
         if (spareOn(c, asOf) || !isSpare(c.rack)) return c.rack;
         if (c.was) return c.was;
         return String(c.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();
@@ -117,6 +144,8 @@ var DC_CABINETS = (function () {
        against the breaker it was actually read through: B-09's pair was
        25 A until 2026-10-16 and is 32 A now. */
     function breakerOn(c, asOf) {
+        var spell = spellOn(c, asOf);
+        if (spell && spell.breaker) return spell.breaker;
         return (asOf && c.breakerSince && c.prevBreaker && asOf < c.breakerSince)
             ? c.prevBreaker : c.breaker;
     }
@@ -695,7 +724,7 @@ var DC_CABINETS = (function () {
 
     return {
         build: build, analyse: analyse, pduPairs: pduPairs,
-        spareOn: spareOn, breakerOn: breakerOn, rackOn: rackOn,
+        spareOn: spareOn, spellOn: spellOn, breakerOn: breakerOn, rackOn: rackOn,
         emsbLoss: emsbLoss, stateOnFeedLoss: stateOnFeedLoss,
         statusOf: statusOf, levelOf: levelOf, judge: judge,
         tripBand: tripBand, tripWords: tripWords, RCBO: RCBO,

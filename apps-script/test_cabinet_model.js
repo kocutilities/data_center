@@ -293,8 +293,9 @@ section('PDU drawings 17-09-26 - PDU-2, 4, 5, 7, 8 relabelled, no way changed');
           [L.length, L.every(c => /^Cabin L-\d\d$/.test(c.name) && c.matched)], [19, true]);
     check('no bare "L-nn" name left to split a cabinet in two',
           cabinets.concat(singleFed).filter(c => /^L-/.test(c.name)).map(c => c.name), []);
-    check('PDU-4 and PDU-5 Q30 / Q31 are SPARE Cabin H-04',
-          ['PDU 4', 'PDU 5'].flatMap(p => ['Q30', 'Q31'].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack)),
+    check('PDU-4 and PDU-5 Q30 / Q31 were SPARE Cabin H-04 at that revision',
+          ['PDU 4', 'PDU 5'].flatMap(p => ['Q30', 'Q31'].map(
+              q => M.rackOn(CFG.pduCircuits[p].find(w => w.c === q), '2026-10-17'))),
           Array(4).fill('SPARE Cabin H-04'));
     check('PDU-2 Q77 / Q78 are SPARE Cabin B-06 / B-04',
           ['Q77', 'Q78'].map(q => CFG.pduCircuits['PDU 2'].find(w => w.c === q).rack), ['SPARE Cabin B-06', 'SPARE Cabin B-04']);
@@ -317,6 +318,67 @@ section('PDU-6 Q26 is SPARE CABIN A-14, as drawn - misread as live until 19-09-2
     check('SR-001 is resolved', CFG.supplyChanges.find(e => e.id === 'SR-001').status, 'resolved');
 }
 
+/* ======================================================== 04-11-2026 */
+section('PDU modifications of 2026-11-04 - A-10 back in use, H-04 decommissioned');
+{
+    const way = (p, q) => CFG.pduCircuits[p].find(w => w.c === q);
+    const BEFORE = '2026-08-16';      /* A-10 live, H-04 live            */
+    const BETWEEN = '2026-10-17';     /* A-10 gone, H-04 still live      */
+    const AFTER = '2026-11-04';       /* A-10 back, H-04 gone            */
+
+    /* A-10's way is the first that needed more than one transition: live,
+       then spare from 2026-10-04, then live again from 2026-11-04. */
+    check('PDU-1 and PDU-6 Q12 read Cabin A-10 on all three issues of the label',
+          ['PDU 1', 'PDU 6'].flatMap(p => [BEFORE, BETWEEN, AFTER].map(d => M.rackOn(way(p, 'Q12'), d))),
+          ['Cabin A-10', 'Cabin A-10 SPARE', 'Cabin A-10',
+           'Cabin A-10', 'Cabin A-10 SPARE', 'Cabin A-10']);
+    check('  ... and it is spare only for the month between the two',
+          ['PDU 1', 'PDU 6'].flatMap(p => [BEFORE, BETWEEN, AFTER, null].map(d => M.spareOn(way(p, 'Q12'), d))),
+          [false, true, false, false, false, true, false, false]);
+    check('  ... Q13 stays reserved on both boards, so A-10 takes one way a feed where it took two',
+          ['PDU 1', 'PDU 6'].map(p => way(p, 'Q13').rack),
+          ['Cabin A-10 SPARE', 'Cabin A-10 SPARE']);
+    check('  ... and A-10 is a matched pair again, 25 A on both feeds',
+          (() => { const c = M.build().cabinets.find(x => x.name === 'Cabin A-10');
+                   return c && [c.A.length, c.B.length, c.matched, c.A[0].plate, c.B[0].plate]; })(),
+          [1, 1, true, 25, 25]);
+
+    check('H-04 is in the room before the works and gone after',
+          [BEFORE, BETWEEN, AFTER, null].map(d => M.build(d).cabinets.some(c => c.name === 'Cabin H-04')),
+          [true, true, false, false]);
+    check('PDU-4 and PDU-5 Q29 were Cabin H-04 and are a bare SPARE now',
+          ['PDU 4', 'PDU 5'].flatMap(p => [M.rackOn(way(p, 'Q29'), BETWEEN), way(p, 'Q29').rack]),
+          ['Cabin H-04', 'SPARE', 'Cabin H-04', 'SPARE']);
+    check('  ... Q30 was a spare-cabin way and is a bare SPARE now, so its cable is gone',
+          ['PDU 4', 'PDU 5'].flatMap(p => [M.rackOn(way(p, 'Q30'), BETWEEN), way(p, 'Q30').rack]),
+          ['SPARE Cabin H-04', 'SPARE', 'SPARE Cabin H-04', 'SPARE']);
+    check('  ... while Q31 still names H-04 on both boards - the open query on these drawings',
+          ['PDU 4', 'PDU 5'].map(p => way(p, 'Q31').rack),
+          ['SPARE Cabin H-04', 'SPARE Cabin H-04']);
+    check('  ... and no rating or phase moved on any of the four ways',
+          ['PDU 4', 'PDU 5'].flatMap(p => ['Q29', 'Q30'].map(q => way(p, q).breaker + ' ' + way(p, q).ph)),
+          ['16A Y', '16A B', '16A Y', '16A B']);
+
+    /* the invariant that keeps spells honest */
+    const spelled = Object.keys(CFG.pduCircuits)
+        .flatMap(p => CFG.pduCircuits[p].map(w => [p, w]))
+        .filter(([, w]) => w.spells);
+    /* the two Q29s need only one transition, so they keep the flat
+       until / was fields; spells is for the four that need more */
+    check('four ways carry spells, and they are the ones that need two transitions',
+          spelled.map(([p, w]) => p + ' ' + w.c),
+          ['PDU 1 Q12', 'PDU 5 Q30', 'PDU 6 Q12', 'PDU 4 Q30']);
+    check('every spelled way ends on the rack it carries today',
+          spelled.filter(([, w]) => w.spells[w.spells.length - 1].rack !== w.rack)
+                 .map(([p, w]) => p + ' ' + w.c), []);
+    check('every spell after the first is dated, and they run oldest first',
+          spelled.filter(([, w]) => w.spells.slice(1).some((s, i) =>
+                  !s.from || (w.spells[i].from && s.from <= w.spells[i].from)))
+                 .map(([p, w]) => p + ' ' + w.c), []);
+    check('the room holds 109 cabinets today, as it did after the October works',
+          M.build().cabinets.length, M.build('2026-10-17').cabinets.length);
+}
+
 /* ======================================================== over the plate is not a trip */
 section('Decommissioned 2026-10-04 - eight cabinets, 24 ways kept as spare-cabin ways');
 {
@@ -326,14 +388,23 @@ section('Decommissioned 2026-10-04 - eight cabinets, 24 ways kept as spare-cabin
                    'PDU 3': ['Q18'], 'PDU 2': ['Q18'] };
     const { cabinets, singleFed } = M.build();
     const live = cabinets.concat(singleFed).map(c => c.name);
-    check('none of the eight is a live cabinet any more',
-          GONE.filter(n => live.some(x => x.indexOf(n) >= 0)), []);
-    check('all 24 ways are drawn as spare, on both feeds',
-          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack))
+    /* Judged on the 17-10 round rather than today: A-10 came back into
+       service on 2026-11-04, so "any more" is only true of a date before
+       that. The two A-10 ways are checked separately below. */
+    const then = '2026-10-17';
+    const liveThen = (() => { const b = M.build(then);
+                              return b.cabinets.concat(b.singleFed).map(c => c.name); })();
+    const rackThen = (p, q) => M.rackOn(CFG.pduCircuits[p].find(w => w.c === q), then);
+    check('none of the eight was a live cabinet after the works',
+          GONE.filter(n => liveThen.some(x => x.indexOf(n) >= 0)), []);
+    check('all 24 ways were drawn as spare, on both feeds',
+          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => rackThen(p, q)))
                 .filter(r => !/SPARE/i.test(r)), []);
-    check('  ... and each still names its cabinet, so the position is not lost',
-          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => CFG.pduCircuits[p].find(w => w.c === q).rack))
+    check('  ... and each still named its cabinet, so the position was not lost',
+          Object.keys(WAYS).flatMap(p => WAYS[p].map(q => rackThen(p, q)))
                 .filter(r => !/cabin/i.test(r)), []);
+    check('  ... and seven of the eight are still gone today',
+          GONE.filter(n => live.some(x => x.indexOf(n) >= 0)), ['A-10']);
     check('PDU-1 and PDU-6 word it as drawn, CABIN x SPARE',
           CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q8').rack, 'Cabin A-08 SPARE');
     check('PDU-3 and PDU-2 word it as drawn, SPARE CABIN D-02',
@@ -387,17 +458,29 @@ section('Cabinet changes register - what the Cabinet Changes page shows');
 {
     const REG = CFG.cabinetChanges;
     const out = REG.filter(e => e.kind === 'out'), inn = REG.filter(e => e.kind === 'in');
-    check('twelve positions out of service, one taken into use', [out.length, inn.length], [12, 1]);
+    const backAgain = out.filter(e => inn.some(i => i.cabinet === e.cabinet && i.date > e.date));
+    check('thirteen entries out, two in, and one position that went out and came back',
+          [out.length, inn.length, backAgain.map(e => e.label)], [13, 2, ['A-10']]);
     check('every way named is a real PDU way',
           REG.flatMap(e => e.ways).filter(k => {
               const [p, q] = k.split('|');
               return !(CFG.pduCircuits[p] || []).some(w => w.c === q);
           }), []);
-    check('every withdrawn way is drawn spare today, and names its cabinet',
-          out.flatMap(e => e.ways).map(k => {
+    const stillOut = out.filter(e => !backAgain.includes(e));
+    check('every withdrawn way is drawn spare today, unless its position was taken back',
+          stillOut.flatMap(e => e.ways).map(k => {
               const [p, q] = k.split('|');
-              return CFG.pduCircuits[p].find(w => w.c === q).rack;
-          }).filter(r => !/SPARE/i.test(r) || !/cabin/i.test(r)), []);
+              return k + ' ' + CFG.pduCircuits[p].find(w => w.c === q).rack;
+          }).filter(r => !/SPARE/i.test(r)), []);
+    /* A withdrawn way normally keeps its cabinet's name, so the position is
+       not lost. H-04 is the exception: the 04-11-2026 sheets drew Q29 and
+       Q30 as a bare SPARE on both boards while leaving Q31 as SPARE CABIN
+       H-04, which is an open query against those drawings. */
+    check('a withdrawn way names its cabinet, except the four H-04 ways of 04-11-2026',
+          stillOut.flatMap(e => e.ways).filter(k => {
+              const [p, q] = k.split('|');
+              return !/cabin/i.test(CFG.pduCircuits[p].find(w => w.c === q).rack);
+          }), ['PDU 4|Q29', 'PDU 4|Q30', 'PDU 5|Q29', 'PDU 5|Q30']);
     check('every way taken into use is live today',
           inn.flatMap(e => e.ways).map(k => {
               const [p, q] = k.split('|');
@@ -410,15 +493,19 @@ section('Cabinet changes register - what the Cabinet Changes page shows');
               const stamp = e.kind === 'out' ? w.until : w.from;
               return stamp && stamp !== e.date ? e.label + ' ' + k + ' ' + stamp : null;
           })).filter(Boolean), []);
-    check('no cabinet is both in and out', out.filter(e => inn.some(i => i.cabinet === e.cabinet)), []);
+    check('a cabinet that is both in and out went out first and came back after',
+          out.filter(e => inn.some(i => i.cabinet === e.cabinet && i.date <= e.date)).map(e => e.label), []);
     check('each entry carries its source and the drawing that shows it',
           REG.filter(e => !e.reported || !e.drawings).map(e => e.label), []);
     /* the eight of 2026-10-04 carry 24 ways between them */
     const oct = out.filter(e => e.date === '2026-10-04');
     check('the 2026-10-04 group is eight cabinets over 24 ways',
           [oct.length, oct.reduce((s, e) => s + e.ways.length, 0)], [8, 24]);
-    check('  ... and every one of them is gone from the room today',
-          M.build().cabinets.filter(c => oct.some(e => e.cabinet === c.name)).map(c => c.name), []);
+    check('  ... and every one of them was gone from the room on the 17-10 round',
+          M.build('2026-10-17').cabinets.filter(c => oct.some(e => e.cabinet === c.name)).map(c => c.name), []);
+    check('  ... and all but A-10 are gone from it today',
+          M.build().cabinets.filter(c => oct.some(e => e.cabinet === c.name)).map(c => c.name),
+          ['Cabin A-10']);
     check('  ... but all eight are there for a round before the works',
           M.build('2026-08-16').cabinets.filter(c => oct.some(e => e.cabinet === c.name)).length, 8);
 }

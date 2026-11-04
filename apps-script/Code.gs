@@ -86,7 +86,7 @@ var AUDIT_SHEET = 'Audit';
    check_deploy.js compares it with the file on disk: if they match, the
    file on disk is exactly what is running. Do not edit by hand - the tests
    fail if it is not the hash of the file around it. */
-var CODE_FINGERPRINT = '2ee6adbef7f0';
+var CODE_FINGERPRINT = 'afb9b4ed498b';
 
 /* What a request may contain. Generous enough never to refuse a real round -
    a full round is about 300 rows, the largest device is a 2133 A incomer and
@@ -144,7 +144,7 @@ var ALLOWED = {
   "PDU|PDU 1|Q9": ["Cabin A-08 SPARE",25],
   "PDU|PDU 1|Q10": ["Cabin A-09 SPARE",25],
   "PDU|PDU 1|Q11": ["Cabin A-09 SPARE",25],
-  "PDU|PDU 1|Q12": ["Cabin A-10 SPARE",25],
+  "PDU|PDU 1|Q12": ["Cabin A-10",25],
   "PDU|PDU 1|Q13": ["Cabin A-10 SPARE",25],
   "PDU|PDU 1|Q14": ["Cabin B-02",25],
   "PDU|PDU 1|Q15": ["Cabin B-02",25],
@@ -317,8 +317,8 @@ var ALLOWED = {
   "PDU|PDU 5|Q26": ["Cabin H-02",16],
   "PDU|PDU 5|Q27": ["Cabin H-03",16],
   "PDU|PDU 5|Q28": ["SPARE Cabin H-03",16],
-  "PDU|PDU 5|Q29": ["Cabin H-04",16],
-  "PDU|PDU 5|Q30": ["SPARE Cabin H-04",16],
+  "PDU|PDU 5|Q29": ["SPARE",16],
+  "PDU|PDU 5|Q30": ["SPARE",16],
   "PDU|PDU 5|Q31": ["SPARE Cabin H-04",16],
   "PDU|PDU 5|Q32": ["Cabin H-06",25],
   "PDU|PDU 5|Q33": ["SPARE Cabin H-08",25],
@@ -426,7 +426,7 @@ var ALLOWED = {
   "PDU|PDU 6|Q9": ["Cabin A-08 SPARE",25],
   "PDU|PDU 6|Q10": ["Cabin A-09 SPARE",25],
   "PDU|PDU 6|Q11": ["Cabin A-09 SPARE",25],
-  "PDU|PDU 6|Q12": ["Cabin A-10 SPARE",25],
+  "PDU|PDU 6|Q12": ["Cabin A-10",25],
   "PDU|PDU 6|Q13": ["Cabin A-10 SPARE",25],
   "PDU|PDU 6|Q14": ["Cabin B-02",25],
   "PDU|PDU 6|Q15": ["Cabin B-02",25],
@@ -599,8 +599,8 @@ var ALLOWED = {
   "PDU|PDU 4|Q26": ["Cabin H-02",25],
   "PDU|PDU 4|Q27": ["Cabin H-03",25],
   "PDU|PDU 4|Q28": ["SPARE Cabin H-03",16],
-  "PDU|PDU 4|Q29": ["Cabin H-04",16],
-  "PDU|PDU 4|Q30": ["SPARE Cabin H-04",16],
+  "PDU|PDU 4|Q29": ["SPARE",16],
+  "PDU|PDU 4|Q30": ["SPARE",16],
   "PDU|PDU 4|Q31": ["SPARE Cabin H-04",16],
   "PDU|PDU 4|Q32": ["Cabin H-06",16],
   "PDU|PDU 4|Q33": ["SPARE Cabin H-08",16],

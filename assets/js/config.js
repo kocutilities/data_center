@@ -129,7 +129,10 @@ const DC_CONFIG = {
         { c: 'Q9', rack: 'Cabin A-08 SPARE', breaker: '25A', ph: 'B', until: '2026-10-04' },
         { c: 'Q10', rack: 'Cabin A-09 SPARE', breaker: '25A', ph: 'R', until: '2026-10-04' },
         { c: 'Q11', rack: 'Cabin A-09 SPARE', breaker: '25A', ph: 'Y', until: '2026-10-04' },
-        { c: 'Q12', rack: 'Cabin A-10 SPARE', breaker: '25A', ph: 'B', until: '2026-10-04' },
+        { c: 'Q12', rack: 'Cabin A-10', breaker: '25A', ph: 'B',
+          spells: [{ rack: 'Cabin A-10' },
+                   { from: '2026-10-04', rack: 'Cabin A-10 SPARE' },
+                   { from: '2026-11-04', rack: 'Cabin A-10' }] },
         { c: 'Q13', rack: 'Cabin A-10 SPARE', breaker: '25A', ph: 'R', until: '2026-10-04' },
         { c: 'Q14', rack: 'Cabin B-02', breaker: '25A', ph: 'Y' },
         { c: 'Q15', rack: 'Cabin B-02', breaker: '25A', ph: 'B' },
@@ -308,8 +311,10 @@ const DC_CONFIG = {
         { c: 'Q26', rack: 'Cabin H-02', breaker: '16A', ph: 'Y' },
         { c: 'Q27', rack: 'Cabin H-03', breaker: '16A', ph: 'B' },
         { c: 'Q28', rack: 'SPARE Cabin H-03', breaker: '16A', ph: 'R' },
-        { c: 'Q29', rack: 'Cabin H-04', breaker: '16A', ph: 'Y' },
-        { c: 'Q30', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'B' },
+        { c: 'Q29', rack: 'SPARE', breaker: '16A', ph: 'Y', until: '2026-11-04', was: 'Cabin H-04' },
+        { c: 'Q30', rack: 'SPARE', breaker: '16A', ph: 'B',
+          spells: [{ rack: 'SPARE Cabin H-04' },
+                   { from: '2026-11-04', rack: 'SPARE' }] },
         { c: 'Q31', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'R' },
         { c: 'Q32', rack: 'Cabin H-06', breaker: '25A', ph: 'Y' },
         { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '25A', ph: 'B' },
@@ -421,7 +426,10 @@ const DC_CONFIG = {
         { c: 'Q9', rack: 'Cabin A-08 SPARE', breaker: '25A', ph: 'B', until: '2026-10-04' },
         { c: 'Q10', rack: 'Cabin A-09 SPARE', breaker: '25A', ph: 'R', until: '2026-10-04' },
         { c: 'Q11', rack: 'Cabin A-09 SPARE', breaker: '25A', ph: 'Y', until: '2026-10-04' },
-        { c: 'Q12', rack: 'Cabin A-10 SPARE', breaker: '25A', ph: 'B', until: '2026-10-04' },
+        { c: 'Q12', rack: 'Cabin A-10', breaker: '25A', ph: 'B',
+          spells: [{ rack: 'Cabin A-10' },
+                   { from: '2026-10-04', rack: 'Cabin A-10 SPARE' },
+                   { from: '2026-11-04', rack: 'Cabin A-10' }] },
         { c: 'Q13', rack: 'Cabin A-10 SPARE', breaker: '25A', ph: 'R', until: '2026-10-04' },
         { c: 'Q14', rack: 'Cabin B-02', breaker: '25A', ph: 'Y' },
         { c: 'Q15', rack: 'Cabin B-02', breaker: '25A', ph: 'B' },
@@ -598,8 +606,10 @@ const DC_CONFIG = {
         { c: 'Q26', rack: 'Cabin H-02', breaker: '25A', ph: 'Y' },
         { c: 'Q27', rack: 'Cabin H-03', breaker: '25A', ph: 'B' },
         { c: 'Q28', rack: 'SPARE Cabin H-03', breaker: '16A', ph: 'R' },
-        { c: 'Q29', rack: 'Cabin H-04', breaker: '16A', ph: 'Y' },
-        { c: 'Q30', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'B' },
+        { c: 'Q29', rack: 'SPARE', breaker: '16A', ph: 'Y', until: '2026-11-04', was: 'Cabin H-04' },
+        { c: 'Q30', rack: 'SPARE', breaker: '16A', ph: 'B',
+          spells: [{ rack: 'SPARE Cabin H-04' },
+                   { from: '2026-11-04', rack: 'SPARE' }] },
         { c: 'Q31', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'R' },
         { c: 'Q32', rack: 'Cabin H-06', breaker: '16A', ph: 'Y' },
         { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '16A', ph: 'B' },
@@ -966,6 +976,34 @@ const DC_CONFIG = {
       note: 'The meter was ahead of the drawing: Q5 carried 0.7 / 0.6 / 0.6 A on PDU-4 and '
           + '0.7 / 0.6 / 0.7 A on PDU-5 on 2026-08-16, while both sheets still called it spare. '
           + 'H-12 keeps a reserved pair at Q64 on both boards.'
+    },
+    {
+      cabinet: 'Cabin A-10', label: 'A-10', kind: 'in', date: '2026-11-04',
+      pair: 'PDU-1 / PDU-6', zone: 1,
+      ways: ['PDU 1|Q12', 'PDU 6|Q12'],
+      reported: 'PDU modifications reported 04-11-2026',
+      drawings: 'PDU-1 and PDU-6 single line diagrams in 02-Drawings/Drawings update 4.11.2026: '
+              + 'Q12 drawn CABIN A-10 SPARE on the 16-10-26 issue and CABIN A-10 on this one. '
+              + 'The server room layout agrees \u2014 the SPARE beside the Q12 outlet under A-10 is '
+              + 'gone on both P1 and P6, and Q13 keeps its on both.',
+      note: 'A new cabinet in the A-10 position, which was decommissioned on 2026-10-04. It takes '
+          + 'ONE way a feed where the old A-10 took two: Q12 comes back on both boards, Q13 stays '
+          + 'reserved on both. No new cable was needed \u2014 the way was held as a spare cabin way, '
+          + 'cabled to a socket under A-10, which is what that label is for.'
+    },
+    {
+      cabinet: 'Cabin H-04', label: 'H-04', kind: 'out', date: '2026-11-04',
+      pair: 'PDU-5 / PDU-4', zone: 3,
+      ways: ['PDU 4|Q29', 'PDU 4|Q30', 'PDU 5|Q29', 'PDU 5|Q30'],
+      reported: 'PDU modifications reported 04-11-2026',
+      drawings: 'PDU-4 and PDU-5 single line diagrams in 02-Drawings/Drawings update 4.11.2026: '
+              + 'Q29 drawn CABIN H-04 before and SPARE now, Q30 drawn SPARE CABIN H-04 before and '
+              + 'SPARE now. Nothing else changed on either sheet.',
+      note: 'Two queries stand against this one. Q31 on both boards still reads SPARE CABIN H-04, '
+          + 'so one cabled socket is still drawn under a cabinet said to be gone, where Q30 lost '
+          + 'the same qualifier. And the server room layout in the same issue was NOT updated: '
+          + 'H-04 is still drawn as a live cabinet with six unmarked outlets, where a '
+          + 'decommissioned cabinet has its outlets marked SPARE. The schedules are followed here.'
     }
   ]
 };

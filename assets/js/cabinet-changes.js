@@ -102,6 +102,33 @@
         return !!shownDate && (e.kind === 'out' ? shownDate < e.date : shownDate >= e.date);
     }
 
+    /* A position decommissioned and later taken back into use is not
+       decommissioned any more. A-10 went out on 2026-10-04 and came back on
+       2026-11-04 for a new cabinet; both entries stay in the register,
+       because that is the history, but counting the first one would report
+       thirteen positions out when twelve are. */
+    function outNow() {
+        return REG.filter(function (e) {
+            return e.kind === 'out' && !REG.some(function (i) {
+                return i.kind === 'in' && i.cabinet === e.cabinet && i.date > e.date;
+            });
+        });
+    }
+
+    /* Ways held in reserve, counted from the schedules rather than from the
+       register, because a position can come back on some of its ways and not
+       others: A-10 took Q12 back on both feeds and left Q13 reserved on both,
+       so two of its four ways are still held and two are not. */
+    function heldWays() {
+        return REG.filter(function (e) { return e.kind === 'out'; })
+            .reduce(function (s, e) {
+                return s + e.ways.filter(function (k) {
+                    var c = way(k).entry;      /* the circuit, not the row wrapper */
+                    return c && M.spareOn(c);
+                }).length;
+            }, 0);
+    }
+
     /* ---------------------------------------------------------
        summary
        --------------------------------------------------------- */
@@ -111,7 +138,7 @@
         host.innerHTML = '';
         var out = REG.filter(function (e) { return e.kind === 'out'; });
         var inn = REG.filter(function (e) { return e.kind === 'in'; });
-        var ways = out.reduce(function (s, e) { return s + e.ways.length; }, 0);
+        var ways = heldWays();
         var live = M.build().cabinets.length;
         var still = out.filter(liveThen);
         var removed = still.reduce(function (s, e) { return s + totalOf(e).amps; }, 0);
@@ -124,7 +151,7 @@
               + (readOf < waysOf ? ' — ' + readOf + ' of ' + waysOf + ' ways read' : '');
 
         [['In service now', live, 'dual-fed cabinets', ''],
-         ['Decommissioned', out.length, 'positions held, not released', 't-out'],
+         ['Decommissioned', outNow().length, 'positions held, not released', 't-out'],
          ['Taken into use', inn.length, inn.length === 1 ? 'a reserved position made live'
                                                          : 'reserved positions made live', 't-in'],
          ['Ways held in reserve', ways, 'cable and socket in place', 't-held'],
@@ -185,14 +212,34 @@
         } else if (was) {
             line = 'In service on the round shown, ' + drew + '.';
         } else {
-            /* H-12 is the case this wording exists for: the meter had it
-               running before the drawing caught up, so "not in use yet"
-               would contradict the figures in its own table */
-            line = 'Still drawn as a reserved position on the round shown'
-                 + (tot.read && tot.amps > 0
-                     ? ', though its ways already carried ' + fmt(tot.amps, 1) + ' A — the meter was ahead '
-                       + 'of the drawing.'
-                     : '.');
+            /* An entry taken into use normally sat reserved until its date,
+               and the H-12 wording below is for the case where the meter had
+               it running before the drawing caught up.
+
+               A-10 breaks that assumption: its ways were live for the OLD
+               cabinet until it was decommissioned on 2026-10-04, so on an
+               August round they were not reserved at all and saying they
+               were would be false. Ask the model what the way actually was
+               on the round shown rather than inferring it from the date. */
+            var reservedThen = e.ways.every(function (k) {
+                var w = way(k).entry;          /* the circuit, not the row wrapper */
+                return !w || M.spareOn(w, shownDate);
+            });
+            var priorOut = REG.filter(function (o) {
+                return o.kind === 'out' && o.cabinet === e.cabinet && o.date < e.date;
+            }).sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0];
+
+            if (!reservedThen && priorOut) {
+                line = 'The cabinet that stood here before was still in service on the round shown, '
+                     + drew + '. It was decommissioned on ' + dmy(priorOut.date)
+                     + ', and the position was taken back into use on ' + dmy(e.date) + '.';
+            } else {
+                line = 'Still drawn as a reserved position on the round shown'
+                     + (tot.read && tot.amps > 0
+                         ? ', though its ways already carried ' + fmt(tot.amps, 1) + ' A — the meter was ahead '
+                           + 'of the drawing.'
+                         : '.');
+            }
         }
         c.appendChild(el('div', 'ch-title', line));
 
@@ -229,8 +276,8 @@
     }
 
     function renderMethod() {
-        var out = REG.filter(function (e) { return e.kind === 'out'; });
-        var ways = out.reduce(function (s, e) { return s + e.ways.length; }, 0);
+        var out = outNow();
+        var ways = heldWays();
         $('method').innerHTML =
             '<h3>What counts as a change here</h3>' +
             '<ul><li><b>Decommissioned</b> — the cabinet was live on both feeds and is not now. Its ways stay in ' +
@@ -239,6 +286,11 @@
             '<b>' + ways + ' ways</b> are held that way across ' + out.length + ' positions.</li>' +
             '<li><b>Taken into use</b> — a position that was drawn as a reserved spare cabin way and is now a live ' +
             'cabinet.</li>' +
+            '<li><b>A position can do both.</b> A-10 was decommissioned on 04-10-2026 and taken back into use on ' +
+            '04-11-2026 for a new cabinet — which is what holding the ways in reserve is for, since no new cable ' +
+            'was needed. Both entries are listed, because both happened; the counts above follow the position as ' +
+            'it stands today, so A-10 is not among the ' + out.length + ' decommissioned. It came back on one way ' +
+            'a feed, Q12, where it previously took two — Q13 is still reserved on both boards.</li>' +
             '<li>A cabinet that merely moved to a different breaker is not here: that is a supply change, on the ' +
             '<a href="supply-changes.html">Supply Changes</a> page.</li></ul>' +
 
