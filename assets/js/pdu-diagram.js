@@ -33,7 +33,36 @@
 
     var shown = 'PDU 1';
     var rec = {};
-    var shownDate = null;
+    /* Two different dates, and the page used to have only one.
+
+       boardDate is the day the BOARD is drawn for - null means "as the
+       schedules stand now". readDate is the round whose CURRENTS are
+       shown. They are the same whenever a round is picked, and they
+       differ on "As drawn now", because the drawings move between rounds:
+       the 04-11-2026 revision put A-10 back on PDU-1 Q12 while the newest
+       round was still 17-10-2026. Tying both to one date meant the newest
+       view the page could offer was the newest round, so a board that had
+       just been re-issued looked stale. */
+    var boardDate = null;
+    var readDate = null;
+    var latest = null;        /* newest round the sheet reports */
+
+    /* The day the schedules themselves last changed, which is what "as
+       drawn now" means and what the picker shows beside it. */
+    function scheduleDate() {
+        var newest = '';
+        Object.keys(DC_CONFIG.pduCircuits).forEach(function (p) {
+            DC_CONFIG.pduCircuits[p].forEach(function (c) {
+                [c.until, c.from, c.breakerSince].forEach(function (d) {
+                    if (d && d > newest) newest = d;
+                });
+                (c.spells || []).forEach(function (sp) {
+                    if (sp.from && sp.from > newest) newest = sp.from;
+                });
+            });
+        });
+        return newest || null;
+    }
 
     function $(id) { return document.getElementById(id); }
     function el(tag, cls, text) {
@@ -68,8 +97,8 @@
 
     /* one way, as it stood on the round being shown */
     function wayOn(c) {
-        var spare = M.spareOn(c, shownDate);
-        var breaker = M.breakerOn(c, shownDate);
+        var spare = M.spareOn(c, boardDate);
+        var breaker = M.breakerOn(c, boardDate);
         var plate = plateOf(breaker);
         var r = rec['PDU|' + shown + '|' + c.c] || null;
         var phases = c.ph === '3' ? ['r', 'y', 'b'] : [String(c.ph).toLowerCase()];
@@ -88,7 +117,7 @@
         return {
             q: c.c, ph: c.ph, breaker: breaker, plate: plate, spare: spare,
             byPhase: byPhase,
-            rack: M.rackOn(c, shownDate),
+            rack: M.rackOn(c, boardDate),
             I: I,
             /* a way the schedule calls spare but the round found carrying
                current: either the schedule is behind the board, or the round
@@ -122,7 +151,7 @@
         host.innerHTML = '';
         var e = equip(shown);
         var ways = DC_CONFIG.pduCircuits[shown] || [];
-        var live = ways.filter(function (c) { return !M.spareOn(c, shownDate); }).length;
+        var live = ways.filter(function (c) { return !M.spareOn(c, boardDate); }).length;
         var r = rec['Main|' + shown + '|'];
         var peak = null;
         if (r) {
@@ -217,7 +246,7 @@
         var tot = waySums(ways);
 
         var panel = el('div', 'phases');
-        panel.appendChild(el('div', 'pk', 'Incomer current' + (shownDate ? ', ' + dmy(shownDate) : '')));
+        panel.appendChild(el('div', 'pk', 'Incomer current' + (readDate ? ', ' + dmy(readDate) : '')));
 
         var grid = el('div', 'pgrid');
         PH.forEach(function (p, i) {
@@ -240,7 +269,7 @@
         var tail = el('div', 'pub');
         if (inc === null) {
             tail.appendChild(el('span', 'dim', 'Incomer not read'
-                + (shownDate ? ' on ' + dmy(shownDate) : '') + '.'));
+                + (readDate ? ' on ' + dmy(readDate) : '') + '.'));
         } else if (ub !== null) {
             var cls = ub >= KOC.advisory.phaseUnbalance.red * 100 ? 'bad'
                     : ub >= KOC.advisory.phaseUnbalance.amber * 100 ? 'warn' : 'dim';
@@ -281,7 +310,7 @@
         var name = el('span', 'wname', w.rack);
         row.title = shown + ' ' + w.q + '  ·  ' + w.breaker + (w.ph === '3' ? ' four-pole' : ' two-pole, ' + w.ph + ' phase')
             + '  ·  ' + w.rack
-            + (w.I === null ? '  ·  not read' + (shownDate ? ' on ' + dmy(shownDate) : '')
+            + (w.I === null ? '  ·  not read' + (readDate ? ' on ' + dmy(readDate) : '')
                             : '  ·  ' + fmt(w.I, 1) + ' A, ' + fmt(w.pct, 1) + ' % of continuous')
             + (w.odd ? '  ·  drawn spare, but this round recorded current on it' : '');
         var cells = side === 'l' ? [name, brk, ph, amp, q] : [q, amp, ph, brk, name];
@@ -321,7 +350,7 @@
         var note = el('div', 'rule-note');
         note.style.marginTop = '14px';
         note.innerHTML = '<b>' + read + ' of ' + ways.length + ' ways read'
-            + (shownDate ? ' on ' + dmy(shownDate) : '') + '.</b> '
+            + (readDate ? ' on ' + dmy(readDate) : '') + '.</b> '
             + (worst.length ? '<b style="color:var(--bad)">' + worst.length + ' above continuous rating</b> ('
                 + worst.map(function (w) { return w.q; }).join(', ') + '). ' : '')
             + (high.length ? high.length + ' above the 15 % level (' + high.map(function (w) { return w.q; }).join(', ') + '). ' : '')
@@ -350,10 +379,19 @@
             '<li>The two halves either side of the bar follow the sheet: the first half of the ways on the left, ' +
             'the second on the right, mirrored.</li></ul>' +
 
-            '<h3>The date matters</h3>' +
-            '<ul><li>Pick a round and the board is rebuilt <b>as it stood that day</b>: a way re-rated since is ' +
-            'drawn with the breaker that was in it, and a way released or taken into use is drawn as it was. ' +
-            'B-09’s pair reads 25 A for a round before 16-10-2026 and 32 A after it.</li>' +
+            '<h3>Two dates, not one</h3>' +
+            '<ul><li><b>As drawn now</b> — the default — draws the board as the <b>drawings</b> have it ' +
+            'today, and fills in the currents from the <b>newest round</b>. Those are different dates ' +
+            'whenever a drawing has been re-issued since the last round was taken, which is the normal ' +
+            'state of affairs: the 04-11-2026 revision put A-10 back on PDU-1 Q12 while the newest round ' +
+            'was still 17-10-2026. The line above the board always says which date is doing what.</li>' +
+            '<li><b>Pick a round instead</b> and the board is rebuilt <b>as it stood that day</b>, currents ' +
+            'and all: a way re-rated since is drawn with the breaker that was in it, and a way released or ' +
+            'taken into use is drawn as it was. B-09’s pair reads 25 A for a round before 16-10-2026 and ' +
+            '32 A after it.</li>' +
+            '<li>On <b>As drawn now</b>, a way that changed hands since the round shows no current — what it ' +
+            'carried then was a different circuit’s load, or none. A-10’s Q12 reads a dash until the first ' +
+            'round after 04-11-2026.</li>' +
             '<li>A way nobody read shows a dash, never a zero.</li></ul>' +
 
             '<h3>Taking it away</h3>' +
@@ -416,7 +454,8 @@
             + '  ·  single line diagram'));
         host.appendChild(el('div', 'sub', 'Feed ' + DC_PDU_FEED[shown] + ', from ' + (e ? e.source : '—')
             + '  ·  incomer ' + (e ? e.rated : '?') + ' A MCCB'
-            + '  ·  readings of ' + (shownDate ? dmy(shownDate) : 'no round loaded')));
+            + '  ·  board as drawn ' + (boardDate ? dmy(boardDate) : 'today')
+            + '  ·  readings of ' + (readDate ? dmy(readDate) : 'no round loaded')));
         host.appendChild(el('div', 'prov',
             'Drawn from the circuit schedules held in the KOC Data Center electrical records app, which transcribe '
             + 'the PDU single line diagrams. Cable sizes, RCBO sensitivities and breaker makes are on the drawings '
@@ -456,14 +495,15 @@
         };
         var lines = [
             ['KOC Data Center - PDU circuit schedule' + (all ? ', all eight boards' : ', ' + shown)],
-            ['Readings of', shownDate ? dmy(shownDate) : 'no round loaded'],
+            ['Board as drawn', boardDate ? dmy(boardDate) : 'today'],
+            ['Readings of', readDate ? dmy(readDate) : 'no round loaded'],
             ['Exported', dmy(new Date().toISOString().slice(0, 10))],
             ['Source', 'circuit schedules in the electrical records app, transcribed from the PDU single line diagrams'],
             [],
             head
         ].concat(rows).map(function (r) { return r.map(esc).join(','); }).join('\r\n');
         download('KOC DC ' + (all ? 'all PDUs' : shown) + ' schedule '
-            + (shownDate || 'no round') + '.csv', lines);
+            + (readDate || 'no round') + '.csv', lines);
     }
 
     function render() { renderTabs(); renderPrintHead(); renderHead(); renderBoard(); renderMethod(); }
@@ -475,8 +515,13 @@
     function fillDates(list, chosen) {
         var sel = $('date');
         var dates = (list || []).slice().sort().reverse();
-        if (dates.indexOf(chosen) === -1) dates.unshift(chosen);
+        if (chosen !== 'now' && dates.indexOf(chosen) === -1) dates.unshift(chosen);
         sel.innerHTML = '';
+        /* first, and the default: the board as the schedules have it now */
+        var sd = scheduleDate();
+        var now = el('option', '', 'As drawn now' + (sd ? '  ·  ' + dmy(sd) : ''));
+        now.value = 'now';
+        sel.appendChild(now);
         dates.forEach(function (d) {
             var o = el('option', '', dmy(d));
             o.value = d;
@@ -495,24 +540,38 @@
     }
 
     function load(date, auto) {
+        var asNow = (date === 'now');
         if (!endpointUrl()) {
+            boardDate = asNow ? null : date;
             setStatus('No sheet connected on this device — the boards are drawn without readings.');
             render(); return;
         }
-        setStatus('Reading ' + dmy(date) + ' from the sheet…', true);
-        ask(date).then(function (d) {
-            if (auto && d.latest && d.latest !== date) {
+        /* "As drawn now" still wants the newest round's currents, so it
+           fetches that round and only then lets the board run ahead of it */
+        var want = asNow ? (latest || new Date().toISOString().slice(0, 10)) : date;
+        setStatus('Reading ' + dmy(want) + ' from the sheet…', true);
+        ask(want).then(function (d) {
+            if (d.latest) latest = d.latest;
+            if ((auto || asNow) && d.latest && d.latest !== want) {
                 try { localStorage.setItem(LATEST_KEY, d.latest); } catch (e) { /* ignore */ }
-                return load(d.latest, false);
+                return load(asNow ? 'now' : d.latest, false);
             }
             rec = d.recorded || {};
-            shownDate = date;
-            fillDates(d.dates, date);
-            setStatus(Object.keys(rec).length + ' readings recorded for ' + dmy(date)
-                + ' — the boards are drawn as they stood that day');
+            readDate = want;
+            boardDate = asNow ? null : want;
+            fillDates(d.dates, asNow ? 'now' : want);
+            var sd = scheduleDate();
+            setStatus(asNow
+                ? 'Boards as the drawings have them'
+                  + (sd ? ', last changed ' + dmy(sd) : '')
+                  + ' — currents from the round of ' + dmy(want)
+                  + (sd && sd > want ? ', which is older than the drawings' : '')
+                : Object.keys(rec).length + ' readings recorded for ' + dmy(want)
+                  + ' — the boards are drawn as they stood that day');
             render();
         }).catch(function (e) {
             console.error('PDU diagram: readings failed', e);
+            boardDate = asNow ? null : date;
             setStatus('Could not read the sheet (' + e.message + ') — the boards are drawn without readings.');
             render();
         });
@@ -536,8 +595,8 @@
         var m = /[#&]pdu=\s*(?:PDU)?\s*(\d)/i.exec(hash);
         if (m && ORDER.indexOf('PDU ' + m[1]) >= 0) shown = 'PDU ' + m[1];
         render();
-        var start; try { start = localStorage.getItem(LATEST_KEY); } catch (e) { start = null; }
-        load(start || new Date().toISOString().slice(0, 10), true);
+        try { latest = localStorage.getItem(LATEST_KEY); } catch (e) { latest = null; }
+        load('now', true);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
