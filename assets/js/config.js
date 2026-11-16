@@ -292,8 +292,8 @@ const DC_CONFIG = {
         { c: 'Q7', rack: 'Cabin F-01', breaker: '16A', ph: 'R' },
         { c: 'Q8', rack: 'SPARE Cabin F-01', breaker: '16A', ph: 'Y' },
         { c: 'Q9', rack: 'Cabin F-02', breaker: '16A', ph: 'B' },
-        { c: 'Q10', rack: 'Cabin F-03', breaker: '16A', ph: 'R' },
-        { c: 'Q11', rack: 'Cabin F-04', breaker: '16A', ph: 'Y' },
+        { c: 'Q10', rack: 'Cabin F-03', breaker: '25A', ph: 'R', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q11', rack: 'Cabin F-04', breaker: '25A', ph: 'Y', prevBreaker: '16A', breakerSince: '2026-11-15' },
         { c: 'Q12', rack: 'Cabin F-05', breaker: '16A', ph: 'B' },
         { c: 'Q13', rack: 'Cabin F-06', breaker: '16A', ph: 'R' },
         { c: 'Q14', rack: 'Cabin F-03', breaker: '16A', ph: 'Y' },
@@ -306,7 +306,7 @@ const DC_CONFIG = {
         { c: 'Q21', rack: 'Cabin G-05', breaker: '16A', ph: 'B' },
         { c: 'Q22', rack: 'Cabin G-08', breaker: '16A', ph: 'R' },
         { c: 'Q23', rack: 'Cabin G-09', breaker: '16A', ph: 'Y' },
-        { c: 'Q24', rack: 'Cabin G-10', breaker: '16A', ph: 'B' },
+        { c: 'Q24', rack: 'Cabin G-10', breaker: '25A', ph: 'B', prevBreaker: '16A', breakerSince: '2026-11-15' },
         { c: 'Q25', rack: 'Cabin H-01', breaker: '16A', ph: 'R' },
         { c: 'Q26', rack: 'Cabin H-02', breaker: '16A', ph: 'Y' },
         { c: 'Q27', rack: 'Cabin H-03', breaker: '16A', ph: 'B' },
@@ -317,7 +317,7 @@ const DC_CONFIG = {
                    { from: '2026-11-04', rack: 'SPARE' }] },
         { c: 'Q31', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'R' },
         { c: 'Q32', rack: 'Cabin H-06', breaker: '25A', ph: 'Y' },
-        { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '25A', ph: 'B' },
+        { c: 'Q33', rack: 'Cabin H-08', breaker: '32A', ph: 'B', prevBreaker: '25A', breakerSince: '2026-11-15', from: '2026-11-15', was: 'SPARE Cabin H-08' },
         { c: 'Q34', rack: 'Cabin H-09', breaker: '25A', ph: 'R' },
         { c: 'Q35', rack: 'Cabin H-10', breaker: '25A', ph: 'Y' },
         { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '25A', ph: 'B', until: '2025-12-31' },
@@ -327,21 +327,21 @@ const DC_CONFIG = {
         { c: 'Q40', rack: 'SPARE', breaker: '25A', ph: 'R' },
         { c: 'Q41', rack: 'Cabin G-02', breaker: '25A', ph: 'Y' },
         { c: 'Q42', rack: 'Cabin G-01', breaker: '25A', ph: 'B' },
-        { c: 'Q43', rack: 'SPARE IND. SOCKET', breaker: '16A', ph: 'R' },
-        { c: 'Q44', rack: 'SPARE IND. SOCKET', breaker: '16A', ph: 'Y' },
+        { c: 'Q43', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'R', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q44', rack: 'SPARE IND. SOCKET', breaker: '25A', ph: 'Y', prevBreaker: '16A', breakerSince: '2026-11-15' },
         { c: 'Q45', rack: 'SPARE IND. SOCKET', breaker: '16A', ph: 'B' },
         { c: 'Q46', rack: 'SPARE IND. SOCKET', breaker: '16A', ph: 'R' },
         { c: 'Q47', rack: 'SPARE IND. SOCKET', breaker: '16A', ph: 'Y' },
         { c: 'Q48', rack: 'Cabin G-10 SPARE', breaker: '16A', ph: 'B' },
-        { c: 'Q49', rack: 'Cabin H-11', breaker: '16A', ph: 'R' },
-        { c: 'Q50', rack: 'Cabin H-11 SPARE', breaker: '16A', ph: 'Y' },
-        { c: 'Q51', rack: 'SPARE', breaker: '16A', ph: 'B' },
-        { c: 'Q52', rack: 'SPARE', breaker: '16A', ph: 'R' },
-        { c: 'Q53', rack: 'SPARE', breaker: '16A', ph: 'Y' },
-        { c: 'Q54', rack: 'SPARE', breaker: '16A', ph: 'B' },
-        { c: 'Q55', rack: 'SPARE', breaker: '16A', ph: 'R' },
-        { c: 'Q56', rack: 'SPARE', breaker: '16A', ph: 'Y' },
-        { c: 'Q57', rack: 'SPARE', breaker: '16A', ph: 'B' },
+        { c: 'Q49', rack: 'Cabin H-11', breaker: '25A', ph: 'R', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q50', rack: 'Cabin H-11 SPARE', breaker: '25A', ph: 'Y', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q51', rack: 'SPARE', breaker: '25A', ph: 'B', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q52', rack: 'SPARE', breaker: '25A', ph: 'R', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q53', rack: 'Cabin G-09', breaker: '25A', ph: 'Y', prevBreaker: '16A', breakerSince: '2026-11-15', from: '2026-11-15' },
+        { c: 'Q54', rack: 'SPARE', breaker: '25A', ph: 'B', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q55', rack: 'SPARE', breaker: '25A', ph: 'R', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q56', rack: 'SPARE', breaker: '25A', ph: 'Y', prevBreaker: '16A', breakerSince: '2026-11-15' },
+        { c: 'Q57', rack: 'SPARE', breaker: '25A', ph: 'B', prevBreaker: '16A', breakerSince: '2026-11-15' },
         { c: 'Q58', rack: 'SPARE', breaker: '16A', ph: 'R' },
         { c: 'Q59', rack: 'SPARE', breaker: '16A', ph: 'Y' },
         { c: 'Q60', rack: 'SPARE', breaker: '16A', ph: 'B' },
@@ -353,15 +353,15 @@ const DC_CONFIG = {
         { c: 'Q66', rack: 'SPARE', breaker: '16A', ph: 'B' },
         { c: 'Q67', rack: 'SPARE', breaker: '16A', ph: 'R' },
         { c: 'Q68', rack: 'SPARE', breaker: '16A', ph: 'Y' },
-        { c: 'Q69', rack: 'SPARE', breaker: '25A', ph: 'B' },
-        { c: 'Q70', rack: 'SPARE', breaker: '25A', ph: 'R' },
-        { c: 'Q71', rack: 'SPARE', breaker: '25A', ph: 'Y' },
-        { c: 'Q72', rack: 'SPARE', breaker: '25A', ph: 'B' },
-        { c: 'Q73', rack: 'SPARE', breaker: '25A', ph: 'R' },
-        { c: 'Q74', rack: 'SPARE', breaker: '25A', ph: 'Y' },
-        { c: 'Q75', rack: 'SPARE', breaker: '25A', ph: 'B' },
-        { c: 'Q76', rack: 'SPARE', breaker: '25A', ph: 'R' },
-        { c: 'Q77', rack: 'SPARE', breaker: '25A', ph: 'Y' },
+        { c: 'Q69', rack: 'SPARE', breaker: '16A', ph: 'B', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q70', rack: 'SPARE', breaker: '16A', ph: 'R', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q71', rack: 'SPARE', breaker: '16A', ph: 'Y', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q72', rack: 'SPARE', breaker: '16A', ph: 'B', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q73', rack: 'SPARE', breaker: '16A', ph: 'R', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q74', rack: 'SPARE', breaker: '16A', ph: 'Y', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q75', rack: 'SPARE', breaker: '16A', ph: 'B', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q76', rack: 'SPARE', breaker: '16A', ph: 'R', prevBreaker: '25A', breakerSince: '2026-11-15' },
+        { c: 'Q77', rack: 'SPARE', breaker: '16A', ph: 'Y', prevBreaker: '25A', breakerSince: '2026-11-15' },
         { c: 'Q78', rack: 'Cabin G-01', breaker: '25A', ph: 'B' }
     ],
     'PDU 7': [
@@ -612,7 +612,7 @@ const DC_CONFIG = {
                    { from: '2026-11-04', rack: 'SPARE' }] },
         { c: 'Q31', rack: 'SPARE Cabin H-04', breaker: '16A', ph: 'R' },
         { c: 'Q32', rack: 'Cabin H-06', breaker: '16A', ph: 'Y' },
-        { c: 'Q33', rack: 'SPARE Cabin H-08', breaker: '16A', ph: 'B' },
+        { c: 'Q33', rack: 'Cabin H-08', breaker: '32A', ph: 'B', prevBreaker: '16A', breakerSince: '2026-11-15', from: '2026-11-15', was: 'SPARE Cabin H-08' },
         { c: 'Q34', rack: 'Cabin H-09', breaker: '16A', ph: 'R' },
         { c: 'Q35', rack: 'Cabin H-10', breaker: '16A', ph: 'Y' },
         { c: 'Q36', rack: 'SPARE Cabin I-05', breaker: '16A', ph: 'B', until: '2025-12-31' },
@@ -632,7 +632,7 @@ const DC_CONFIG = {
         { c: 'Q50', rack: 'Cabin H-11 SPARE', breaker: '25A', ph: 'Y' },
         { c: 'Q51', rack: 'SPARE', breaker: '25A', ph: 'B' },
         { c: 'Q52', rack: 'SPARE', breaker: '25A', ph: 'R' },
-        { c: 'Q53', rack: 'SPARE', breaker: '25A', ph: 'Y' },
+        { c: 'Q53', rack: 'Cabin G-09', breaker: '25A', ph: 'Y', from: '2026-11-15' },
         { c: 'Q54', rack: 'SPARE', breaker: '25A', ph: 'B' },
         { c: 'Q55', rack: 'SPARE', breaker: '25A', ph: 'R' },
         { c: 'Q56', rack: 'SPARE', breaker: '25A', ph: 'Y' },
@@ -1004,6 +1004,21 @@ const DC_CONFIG = {
           + 'the same qualifier. And the server room layout in the same issue was NOT updated: '
           + 'H-04 is still drawn as a live cabinet with six unmarked outlets, where a '
           + 'decommissioned cabinet has its outlets marked SPARE. The schedules are followed here.'
+    },
+    {
+      cabinet: 'Cabin H-08', label: 'H-08', kind: 'in', date: '2026-11-15',
+      pair: 'PDU-5 / PDU-4', zone: 3,
+      ways: ['PDU 5|Q33', 'PDU 4|Q33'],
+      reported: 'PDU modifications reported 16-11-2026',
+      drawings: 'PDU-4 and PDU-5 in 02-Drawings/PDU update 15.11.2026: Q33 was uprated on both — '
+              + '16 A to 32 A on PDU-4, 25 A to 32 A on PDU-5 — but BOTH SHEETS STILL READ '
+              + 'SPARE CABIN H-08. The label was not changed.',
+      note: 'Taken as connected on three grounds against the one label. Jais advised on 2026-11-16 that '
+          + 'H-08 is connected to Q33 on both boards; the same revision uprated both breakers to 32 A, '
+          + 'which is not done to a way nobody intends to use; and the round of 14-11-2026 recorded '
+          + '1.1 A on Q33 on BOTH feeds, which a way with nothing connected cannot draw. The drawing '
+          + 'label is the only thing saying otherwise and it is the H-12 case again — the meter ahead '
+          + 'of the drawing. Worth having the label corrected on the next issue.'
     }
   ]
 };

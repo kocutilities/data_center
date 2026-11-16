@@ -134,6 +134,13 @@ var DC_CABINETS = (function () {
     function rackOn(c, asOf) {
         var spell = spellOn(c, asOf);
         if (spell) return spell.rack;
+        /* Taken into use later: on an earlier date this was a spare way,
+           and naming it after the cabinet that only arrived afterwards
+           would put a live name on a way the drawing called SPARE. PDU-3
+           Q56 read a plain SPARE until B-14 moved onto it on 2026-10-16.
+           `was` carries the old label where the drawing had a particular
+           one; otherwise it was a plain spare. */
+        if (spareOn(c, asOf) && !isSpare(c.rack)) return c.was || 'SPARE';
         if (spareOn(c, asOf) || !isSpare(c.rack)) return c.rack;
         if (c.was) return c.was;
         return String(c.rack).replace(/SPARE/ig, '').replace(/\s+/g, ' ').trim();

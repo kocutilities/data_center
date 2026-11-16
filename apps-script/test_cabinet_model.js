@@ -53,10 +53,10 @@ const rd = (pdu, q, v) => ({ ['PDU|' + pdu + '|' + q]: v });
 section('Cabinets built from config');
 {
     const { cabinets, singleFed } = M.build();
-    check('109 dual-fed cabinets', cabinets.length, 109);
+    check('110 dual-fed cabinets', cabinets.length, 110);
     check('8 single-fed loads kept apart', singleFed.length, 8);
     check('no single-fed load is a cabinet', singleFed.filter(s => /cabin|^L-|^M-/i.test(s.name)).map(s => s.name), []);
-    check('107 pair exactly', cabinets.filter(c => c.matched).length, 107);
+    check('108 pair exactly', cabinets.filter(c => c.matched).length, 108);
     check('the two that do not', cabinets.filter(c => !c.matched).map(c => c.name).sort(),
           ['Cabin G-01', 'Cabin G-02']);
     /* the pairing key is way|phase; that only works if each side sits on one PDU */
@@ -66,10 +66,19 @@ section('Cabinets built from config');
     check('every A side is on an odd PDU, every B side on an even one',
           cabinets.filter(c => c.A.some(w => +w.pdu.slice(4) % 2 === 0) || c.B.some(w => +w.pdu.slice(4) % 2 === 1))
                   .map(c => c.name), []);
-    check('56 paired ways carry different breakers on each side',
-          cabinets.reduce((s, c) => s + c.mismatch.length, 0), 56);
-    check('G-10 is one: 16 A on PDU 5, 25 A on PDU 4',
-          cabinets.find(c => c.name === 'Cabin G-10').mismatch, [{ q: 'Q24', plateA: 16, plateB: 25 }]);
+    check('52 paired ways carry different breakers on each side',
+          cabinets.reduce((s, c) => s + c.mismatch.length, 0), 52);
+    /* G-10 was the example until 2026-11-15, when PDU-5 Q24 came up to
+       25 A and matched PDU-4. Four pairs were evened up that way, which
+       is why the count above fell from 56. G-09 is the example now - and
+       the same revision gave it a second, matched pair at Q53. */
+    check('G-10 was 16 A on PDU 5 against 25 A on PDU 4, and is matched now',
+          [M.build('2026-10-17').cabinets.find(c => c.name === 'Cabin G-10').mismatch,
+           cabinets.find(c => c.name === 'Cabin G-10').mismatch],
+          [[{ q: 'Q24', plateA: 16, plateB: 25 }], []]);
+    check('G-09 is an unequal pair now: 16 A on PDU 5 against 25 A on PDU 4',
+          cabinets.find(c => c.name === 'Cabin G-09').mismatch,
+          [{ q: 'Q23', plateA: 16, plateB: 25 }]);
     check('Cabin A-02 is PDU 1 Q2 and PDU 6 Q2, the example given',
           (() => { const c = cabinets.find(x => x.name === 'Cabin A-02');
                    return c ? [c.A.map(w => w.pdu + ' ' + w.q), c.B.map(w => w.pdu + ' ' + w.q)] : null; })(),
@@ -375,8 +384,75 @@ section('PDU modifications of 2026-11-04 - A-10 back in use, H-04 decommissioned
           spelled.filter(([, w]) => w.spells.slice(1).some((s, i) =>
                   !s.from || (w.spells[i].from && s.from <= w.spells[i].from)))
                  .map(([p, w]) => p + ' ' + w.c), []);
-    check('the room holds 109 cabinets today, as it did after the October works',
-          M.build().cabinets.length, M.build('2026-10-17').cabinets.length);
+    check('the October works left 109 cabinets, and the room is 110 now',
+          [M.build('2026-10-17').cabinets.length, M.build().cabinets.length], [109, 110]);
+}
+
+/* ======================================================== 15-11-2026 */
+section('PDU modifications of 2026-11-15 - 25 ratings, and G-09 onto Q53');
+{
+    const way = (p, q) => CFG.pduCircuits[p].find(w => w.c === q);
+    const BEFORE = '2026-10-17';
+
+    const UP = ['Q10', 'Q11', 'Q24', 'Q43', 'Q44', 'Q49', 'Q50', 'Q51', 'Q52',
+                'Q53', 'Q54', 'Q55', 'Q56', 'Q57'];
+    const DOWN = ['Q69', 'Q70', 'Q71', 'Q72', 'Q73', 'Q74', 'Q75', 'Q76', 'Q77'];
+
+    check('PDU-5: fourteen ways went 16 A to 25 A',
+          UP.filter(q => !(way('PDU 5', q).breaker === '25A'
+                        && M.breakerOn(way('PDU 5', q), BEFORE) === '16A')), []);
+    check('PDU-5: nine ways went 25 A down to 16 A',
+          DOWN.filter(q => !(way('PDU 5', q).breaker === '16A'
+                          && M.breakerOn(way('PDU 5', q), BEFORE) === '25A')), []);
+    check('PDU-5 Q33 went 25 A to 32 A, PDU-4 Q33 went 16 A to 32 A',
+          [['PDU 5', 'PDU 4'].map(p => way(p, 'Q33').breaker),
+           ['PDU 5', 'PDU 4'].map(p => M.breakerOn(way(p, 'Q33'), BEFORE))],
+          [['32A', '32A'], ['25A', '16A']]);
+    /* Both sheets still READ "SPARE CABIN H-08" after this revision - the
+       label was not changed. H-08 is recorded as connected anyway, on three
+       grounds against that one: Jais advised it, the same revision uprated
+       both breakers to 32 A, and the round of 14-11-2026 found 1.1 A on
+       Q33 on BOTH feeds, which a way with nothing on it cannot draw. The
+       register entry says so, and the old label is kept on the way. */
+    check('  ... Q33 is Cabin H-08 now and was SPARE CABIN H-08 before',
+          ['PDU 5', 'PDU 4'].flatMap(p => [way(p, 'Q33').rack, M.rackOn(way(p, 'Q33'), BEFORE)]),
+          ['Cabin H-08', 'SPARE Cabin H-08', 'Cabin H-08', 'SPARE Cabin H-08']);
+    check('  ... so H-08 joins the room on 2026-11-15, a matched 32 A pair',
+          (() => { const h = M.build().cabinets.find(c => c.name === 'Cabin H-08');
+                   return [M.build(BEFORE).cabinets.some(c => c.name === 'Cabin H-08'),
+                           !!h, h && h.matched, h && h.A[0].plate, h && h.B[0].plate]; })(),
+          [false, true, true, 32, 32]);
+    check('  ... and the register records it as taken into use, against the label',
+          (() => { const e = CFG.cabinetChanges.filter(x => x.cabinet === 'Cabin H-08')[0];
+                   return e && [e.kind, e.date, e.ways]; })(),
+          ['in', '2026-11-15', ['PDU 5|Q33', 'PDU 4|Q33']]);
+
+    check('Q53 on both boards was a plain spare and is Cabin G-09 now',
+          ['PDU 5', 'PDU 4'].flatMap(p => [M.rackOn(way(p, 'Q53'), BEFORE), way(p, 'Q53').rack]),
+          ['SPARE', 'Cabin G-09', 'SPARE', 'Cabin G-09']);
+    check('  ... and it is spare on the earlier round, live now',
+          ['PDU 5', 'PDU 4'].flatMap(p => [M.spareOn(way(p, 'Q53'), BEFORE), M.spareOn(way(p, 'Q53'))]),
+          [true, false, true, false]);
+
+    /* G-09 already had a pair at Q23, so this is a second pair for a
+       cabinet that was already in the room, not a new cabinet */
+    const g09 = (d) => M.build(d).cabinets.find(c => c.name === 'Cabin G-09');
+    check('G-09 had one way a feed and has two now',
+          [g09(BEFORE).A.length, g09(BEFORE).B.length, g09().A.length, g09().B.length],
+          [1, 1, 2, 2]);
+    check('  ... the new pair is matched at 25 A, where the old one is 16 / 25',
+          [g09().A.map(w => w.q + ' ' + w.plate), g09().B.map(w => w.q + ' ' + w.plate)],
+          [['Q23 16', 'Q53 25'], ['Q23 25', 'Q53 25']]);
+    check('  ... and G-09 itself is not a new cabinet - the room grows only by H-08',
+          [M.build(BEFORE).cabinets.length, M.build().cabinets.length],
+          [109, 110]);
+
+    /* a way taken into use is a plain spare before its date, not its
+       cabinet's name - PDU-3 Q56 read SPARE until B-14 moved onto it */
+    check('a way taken into use reads SPARE before the day it was taken',
+          [['PDU 3', 'Q56', '2026-10-15'], ['PDU 2', 'Q56', '2026-10-15'],
+           ['PDU 1', 'Q46', '2026-02-28']].map(t => M.rackOn(way(t[0], t[1]), t[2])),
+          ['SPARE', 'SPARE', 'SPARE']);
 }
 
 /* ======================================================== over the plate is not a trip */
@@ -414,17 +490,17 @@ section('Decommissioned 2026-10-04 - eight cabinets, 24 ways kept as spare-cabin
           [CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q18').breaker,
            CFG.pduCircuits['PDU 1'].find(w => w.c === 'Q18').ph,
            CFG.pduCircuits['PDU 6'].find(w => w.c === 'Q8').breaker], ['32A', 'B', '25A']);
-    check('the room is 109 dual-fed cabinets and 284 - 24 = 260 ways in service',
+    check('the room is 110 dual-fed cabinets and 264 ways in service',
           [cabinets.length, Object.values(CFG.pduCircuits).flat().filter(w => !/spare/i.test(w.rack)).length],
-          [109, 260]);
+          [110, 264]);
 }
 
 section('The room on a date - a withdrawn cabinet belongs to the rounds it was read in');
 {
     const today = M.build(), aug = M.build('2026-08-16'), sep = M.build('2026-09-15');
     const names = b => b.cabinets.map(c => c.name);
-    check('today: 109 cabinets, and the eight are gone', [today.cabinets.length,
-          names(today).filter(n => /A-08|B-07|D-02/.test(n))], [109, []]);
+    check('today: 110 cabinets, and the eight are gone', [today.cabinets.length,
+          names(today).filter(n => /A-08|B-07|D-02/.test(n))], [110, []]);
     check('2026-08-16: the round found 117 - the eight of 2026-10-04 included',
           [aug.cabinets.length, names(aug).filter(n => /A-08|A-01/.test(n))], [117, ['Cabin A-08']]);
     check('  ... A-01, C-03, I-05 and I-06 were already out by then',
@@ -459,8 +535,8 @@ section('Cabinet changes register - what the Cabinet Changes page shows');
     const REG = CFG.cabinetChanges;
     const out = REG.filter(e => e.kind === 'out'), inn = REG.filter(e => e.kind === 'in');
     const backAgain = out.filter(e => inn.some(i => i.cabinet === e.cabinet && i.date > e.date));
-    check('thirteen entries out, two in, and one position that went out and came back',
-          [out.length, inn.length, backAgain.map(e => e.label)], [13, 2, ['A-10']]);
+    check('thirteen entries out, three in, and one position that went out and came back',
+          [out.length, inn.length, backAgain.map(e => e.label)], [13, 3, ['A-10']]);
     check('every way named is a real PDU way',
           REG.flatMap(e => e.ways).filter(k => {
               const [p, q] = k.split('|');
@@ -535,9 +611,9 @@ section('PDU modifications of 2026-10-16 - ratings and B-14 moved a way');
            M.build('2026-08-16').cabinets.find(c => c.name === 'Cabin B-14').matched], [true, true]);
     check('Q55 is released to spare, and names what it was',
           ['PDU 3', 'PDU 2'].map(p => w(p, 'Q55').rack + '/' + w(p, 'Q55').was), ['SPARE/Cabin B-14', 'SPARE/Cabin B-14']);
-    check('the room is unchanged in size: 109 cabinets, 260 ways in service',
+    check('the room is 110 cabinets and 264 ways in service',
           [M.build().cabinets.length,
-           Object.values(CFG.pduCircuits).flat().filter(x => !/spare/i.test(x.rack)).length], [109, 260]);
+           Object.values(CFG.pduCircuits).flat().filter(x => !/spare/i.test(x.rack)).length], [110, 264]);
 }
 
 section('RCBO overload bands - IEC 61009-1, 1.13 x no trip in 1 h, 1.45 x trip within 1 h');
