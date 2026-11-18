@@ -353,8 +353,14 @@
         host.appendChild(note);
     }
 
+    /* The "How to read this" text. Its section came off the page on
+       2026-11-18 at Jais's request; this is kept whole and simply does
+       nothing while the container is absent, so putting the block back
+       into pdu-diagram.html brings the text back with it. */
     function renderMethod() {
-        $('method').innerHTML =
+        var host = $('method');
+        if (!host) return;
+        host.innerHTML =
             '<h3>What this is drawn from</h3>' +
             '<ul><li>The schedules in <code>config.js</code> — the transcription of record, read off the PDU ' +
             'single line diagrams. The same data the Cabinet Load and Additional Load Study pages assess, so this ' +
